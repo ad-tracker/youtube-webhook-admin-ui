@@ -281,7 +281,7 @@ export class APIClient {
   }
 
   async deletePubSubSubscription(id: number): Promise<void> {
-    return this.request<void>(`/api/v1/subscriptions/${id}`, {
+    return this.request<void>(`/api/v1/subscriptions/${id}?unsubscribe=true`, {
       method: 'DELETE',
     });
   }
