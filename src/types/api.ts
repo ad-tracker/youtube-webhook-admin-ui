@@ -24,16 +24,14 @@ export interface PaginatedResponse<T> {
 // Webhook Events
 export interface WebhookEvent {
   id: number;
-  channel_id: string;
-  video_id: string;
-  published_at: string;
-  updated_at: string;
-  title: string;
-  link: string;
-  author_name: string;
-  author_uri: string;
   raw_xml: string;
+  content_hash: string;
+  received_at: string;
   processed: boolean;
+  processed_at: string | null;
+  processing_error: string | null;
+  video_id: string | null;
+  channel_id: string | null;
   created_at: string;
 }
 
@@ -51,12 +49,9 @@ export interface UpdateWebhookEventRequest {
 export interface Channel {
   channel_id: string;
   title: string;
-  description: string | null;
-  custom_url: string | null;
-  thumbnail_url: string | null;
-  subscriber_count: number | null;
-  video_count: number | null;
-  view_count: number | null;
+  channel_url: string;
+  first_seen_at: string;
+  last_updated_at: string;
   created_at: string;
   updated_at: string;
 }
@@ -68,22 +63,12 @@ export interface ChannelFilters extends PaginationParams, OrderParams {
 export interface CreateChannelRequest {
   channel_id: string;
   title: string;
-  description?: string;
-  custom_url?: string;
-  thumbnail_url?: string;
-  subscriber_count?: number;
-  video_count?: number;
-  view_count?: number;
+  channel_url: string;
 }
 
 export interface UpdateChannelRequest {
-  title?: string;
-  description?: string;
-  custom_url?: string;
-  thumbnail_url?: string;
-  subscriber_count?: number;
-  video_count?: number;
-  view_count?: number;
+  title: string;
+  channel_url: string;
 }
 
 // Videos
@@ -91,13 +76,10 @@ export interface Video {
   video_id: string;
   channel_id: string;
   title: string;
-  description: string | null;
+  video_url: string;
   published_at: string;
-  thumbnail_url: string | null;
-  duration: string | null;
-  view_count: number | null;
-  like_count: number | null;
-  comment_count: number | null;
+  first_seen_at: string;
+  last_updated_at: string;
   created_at: string;
   updated_at: string;
 }
@@ -113,36 +95,26 @@ export interface CreateVideoRequest {
   video_id: string;
   channel_id: string;
   title: string;
-  description?: string;
+  video_url: string;
   published_at: string;
-  thumbnail_url?: string;
-  duration?: string;
-  view_count?: number;
-  like_count?: number;
-  comment_count?: number;
 }
 
 export interface UpdateVideoRequest {
-  title?: string;
-  description?: string;
-  published_at?: string;
-  thumbnail_url?: string;
-  duration?: string;
-  view_count?: number;
-  like_count?: number;
-  comment_count?: number;
+  title: string;
+  video_url: string;
+  published_at: string;
 }
 
 // Video Updates
 export interface VideoUpdate {
   id: number;
+  webhook_event_id: number;
   video_id: string;
   channel_id: string;
-  webhook_event_id: number | null;
-  update_type: 'new' | 'update' | 'delete';
-  previous_data: Record<string, unknown> | null;
-  new_data: Record<string, unknown>;
-  detected_at: string;
+  title: string;
+  published_at: string;
+  feed_updated_at: string;
+  update_type: string;
   created_at: string;
 }
 
@@ -150,17 +122,17 @@ export interface VideoUpdateFilters extends PaginationParams, OrderParams {
   video_id?: string;
   channel_id?: string;
   webhook_event_id?: number;
-  update_type?: 'new' | 'update' | 'delete';
+  update_type?: string;
 }
 
 export interface CreateVideoUpdateRequest {
+  webhook_event_id: number;
   video_id: string;
   channel_id: string;
-  webhook_event_id?: number;
-  update_type: 'new' | 'update' | 'delete';
-  previous_data?: Record<string, unknown>;
-  new_data: Record<string, unknown>;
-  detected_at?: string;
+  title: string;
+  published_at: string;
+  feed_updated_at: string;
+  update_type: string;
 }
 
 // PubSub Subscriptions
@@ -169,18 +141,19 @@ export interface PubSubSubscription {
   channel_id: string;
   topic_url: string;
   callback_url: string;
+  hub_url: string;
   lease_seconds: number;
-  status: 'pending' | 'verified' | 'denied' | 'expired';
-  verified_at: string | null;
-  expires_at: string | null;
-  challenge: string | null;
+  expires_at: string;
+  status: 'pending' | 'active' | 'expired' | 'failed';
+  secret: string | null;
+  last_verified_at: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface PubSubSubscriptionFilters extends PaginationParams {
   channel_id?: string;
-  status?: 'pending' | 'verified' | 'denied' | 'expired';
+  status?: 'pending' | 'active' | 'expired' | 'failed';
   expires_before?: string;
 }
 
@@ -188,14 +161,14 @@ export interface CreatePubSubSubscriptionRequest {
   channel_id: string;
   callback_url: string;
   lease_seconds?: number;
+  secret?: string;
 }
 
 export interface UpdatePubSubSubscriptionRequest {
-  status?: 'pending' | 'verified' | 'denied' | 'expired';
-  verified_at?: string;
-  expires_at?: string;
-  challenge?: string;
   lease_seconds?: number;
+  status?: string;
+  expires_at?: string;
+  last_verified_at?: string;
 }
 
 // API Error Response

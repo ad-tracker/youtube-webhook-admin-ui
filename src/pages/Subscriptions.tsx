@@ -86,7 +86,7 @@ export function Subscriptions() {
 
     if (searchChannel) newFilters.channel_id = searchChannel;
     if (statusFilter !== 'all') {
-      newFilters.status = statusFilter as 'pending' | 'verified' | 'denied' | 'expired';
+      newFilters.status = statusFilter as 'pending' | 'active' | 'expired' | 'failed';
     }
 
     setFilters(newFilters);
@@ -114,12 +114,12 @@ export function Subscriptions() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'verified':
-        return <Badge variant="success">Verified</Badge>;
+      case 'active':
+        return <Badge variant="success">Active</Badge>;
       case 'pending':
         return <Badge variant="secondary">Pending</Badge>;
-      case 'denied':
-        return <Badge variant="destructive">Denied</Badge>;
+      case 'failed':
+        return <Badge variant="destructive">Failed</Badge>;
       case 'expired':
         return <Badge variant="outline">Expired</Badge>;
       default:
@@ -242,8 +242,8 @@ export function Subscriptions() {
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
-              <option value="verified">Verified</option>
-              <option value="denied">Denied</option>
+              <option value="active">Active</option>
+              <option value="failed">Failed</option>
               <option value="expired">Expired</option>
             </Select>
           </div>
@@ -269,7 +269,7 @@ export function Subscriptions() {
                   <TableHead>Channel ID</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Callback URL</TableHead>
-                  <TableHead>Verified At</TableHead>
+                  <TableHead>Last Verified</TableHead>
                   <TableHead>Expires At</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -288,7 +288,7 @@ export function Subscriptions() {
                       {truncate(subscription.callback_url, 40)}
                     </TableCell>
                     <TableCell className="text-xs">
-                      {formatDate(subscription.verified_at)}
+                      {subscription.last_verified_at ? formatDate(subscription.last_verified_at) : 'N/A'}
                     </TableCell>
                     <TableCell className="text-xs">
                       {formatDate(subscription.expires_at)}

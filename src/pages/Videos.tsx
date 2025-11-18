@@ -45,9 +45,8 @@ export function Videos() {
     video_id: '',
     channel_id: '',
     title: '',
+    video_url: '',
     published_at: new Date().toISOString(),
-    description: '',
-    thumbnail_url: '',
   });
 
   // Fetch videos
@@ -66,9 +65,8 @@ export function Videos() {
         video_id: '',
         channel_id: '',
         title: '',
+        video_url: '',
         published_at: new Date().toISOString(),
-        description: '',
-        thumbnail_url: '',
       });
     },
   });
@@ -154,6 +152,7 @@ export function Videos() {
                     onChange={(e) =>
                       setFormData({ ...formData, video_id: e.target.value })
                     }
+                    placeholder="e.g., dQw4w9WgXcQ"
                     required
                   />
                 </div>
@@ -165,6 +164,7 @@ export function Videos() {
                     onChange={(e) =>
                       setFormData({ ...formData, channel_id: e.target.value })
                     }
+                    placeholder="UC..."
                     required
                   />
                 </div>
@@ -180,16 +180,18 @@ export function Videos() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="video_url">Video URL *</Label>
                   <Input
-                    id="description"
-                    value={formData.description}
+                    id="video_url"
+                    value={formData.video_url}
                     onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
+                      setFormData({ ...formData, video_url: e.target.value })
                     }
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    required
                   />
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <Label htmlFor="published_at">Published Date *</Label>
                   <Input
                     id="published_at"
@@ -202,16 +204,6 @@ export function Videos() {
                       })
                     }
                     required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="thumbnail_url">Thumbnail URL</Label>
-                  <Input
-                    id="thumbnail_url"
-                    value={formData.thumbnail_url}
-                    onChange={(e) =>
-                      setFormData({ ...formData, thumbnail_url: e.target.value })
-                    }
                   />
                 </div>
               </div>
@@ -275,9 +267,9 @@ export function Videos() {
                   <TableHead>Video ID</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Channel ID</TableHead>
-                  <TableHead>Views</TableHead>
-                  <TableHead>Likes</TableHead>
+                  <TableHead>Video URL</TableHead>
                   <TableHead>Published</TableHead>
+                  <TableHead>Last Updated</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -293,14 +285,21 @@ export function Videos() {
                     <TableCell className="font-mono text-xs">
                       {truncate(video.channel_id, 15)}
                     </TableCell>
-                    <TableCell>
-                      {video.view_count?.toLocaleString() || 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      {video.like_count?.toLocaleString() || 'N/A'}
+                    <TableCell className="text-xs">
+                      <a
+                        href={video.video_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {truncate(video.video_url, 30)}
+                      </a>
                     </TableCell>
                     <TableCell className="text-xs">
                       {formatDate(video.published_at)}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {formatDate(video.last_updated_at)}
                     </TableCell>
                     <TableCell>
                       <Button

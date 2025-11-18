@@ -43,9 +43,7 @@ export function Channels() {
   const [formData, setFormData] = useState<CreateChannelRequest>({
     channel_id: '',
     title: '',
-    description: '',
-    custom_url: '',
-    thumbnail_url: '',
+    channel_url: '',
   });
 
   // Fetch channels
@@ -63,9 +61,7 @@ export function Channels() {
       setFormData({
         channel_id: '',
         title: '',
-        description: '',
-        custom_url: '',
-        thumbnail_url: '',
+        channel_url: '',
       });
     },
   });
@@ -150,6 +146,7 @@ export function Channels() {
                     onChange={(e) =>
                       setFormData({ ...formData, channel_id: e.target.value })
                     }
+                    placeholder="UC..."
                     required
                   />
                 </div>
@@ -165,33 +162,15 @@ export function Channels() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="channel_url">Channel URL *</Label>
                   <Input
-                    id="description"
-                    value={formData.description}
+                    id="channel_url"
+                    value={formData.channel_url}
                     onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
+                      setFormData({ ...formData, channel_url: e.target.value })
                     }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="custom_url">Custom URL</Label>
-                  <Input
-                    id="custom_url"
-                    value={formData.custom_url}
-                    onChange={(e) =>
-                      setFormData({ ...formData, custom_url: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="thumbnail_url">Thumbnail URL</Label>
-                  <Input
-                    id="thumbnail_url"
-                    value={formData.thumbnail_url}
-                    onChange={(e) =>
-                      setFormData({ ...formData, thumbnail_url: e.target.value })
-                    }
+                    placeholder="https://www.youtube.com/channel/..."
+                    required
                   />
                 </div>
               </div>
@@ -246,10 +225,9 @@ export function Channels() {
                 <TableRow>
                   <TableHead>Channel ID</TableHead>
                   <TableHead>Title</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Subscribers</TableHead>
-                  <TableHead>Videos</TableHead>
-                  <TableHead>Updated</TableHead>
+                  <TableHead>Channel URL</TableHead>
+                  <TableHead>First Seen</TableHead>
+                  <TableHead>Last Updated</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -263,16 +241,20 @@ export function Channels() {
                       {truncate(channel.title, 40)}
                     </TableCell>
                     <TableCell className="max-w-xs text-xs text-muted-foreground">
-                      {truncate(channel.description || 'N/A', 50)}
-                    </TableCell>
-                    <TableCell>
-                      {channel.subscriber_count?.toLocaleString() || 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      {channel.video_count?.toLocaleString() || 'N/A'}
+                      <a
+                        href={channel.channel_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {truncate(channel.channel_url, 40)}
+                      </a>
                     </TableCell>
                     <TableCell className="text-xs">
-                      {formatDate(channel.updated_at)}
+                      {formatDate(channel.first_seen_at)}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {formatDate(channel.last_updated_at)}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">

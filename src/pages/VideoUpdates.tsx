@@ -50,7 +50,7 @@ export function VideoUpdates() {
     if (searchVideo) newFilters.video_id = searchVideo;
     if (searchChannel) newFilters.channel_id = searchChannel;
     if (updateType !== 'all') {
-      newFilters.update_type = updateType as 'new' | 'update' | 'delete';
+      newFilters.update_type = updateType;
     }
 
     setFilters(newFilters);
@@ -67,12 +67,14 @@ export function VideoUpdates() {
 
   const getUpdateTypeBadge = (type: string) => {
     switch (type) {
-      case 'new':
-        return <Badge variant="success">New</Badge>;
-      case 'update':
-        return <Badge variant="default">Update</Badge>;
-      case 'delete':
-        return <Badge variant="destructive">Delete</Badge>;
+      case 'new_video':
+        return <Badge variant="success">New Video</Badge>;
+      case 'title_update':
+        return <Badge variant="default">Title Update</Badge>;
+      case 'description_update':
+        return <Badge variant="default">Description Update</Badge>;
+      case 'unknown':
+        return <Badge variant="outline">Unknown</Badge>;
       default:
         return <Badge variant="outline">{type}</Badge>;
     }
@@ -121,9 +123,10 @@ export function VideoUpdates() {
               onChange={(e) => setUpdateType(e.target.value)}
             >
               <option value="all">All Types</option>
-              <option value="new">New</option>
-              <option value="update">Update</option>
-              <option value="delete">Delete</option>
+              <option value="new_video">New Video</option>
+              <option value="title_update">Title Update</option>
+              <option value="description_update">Description Update</option>
+              <option value="unknown">Unknown</option>
             </Select>
           </div>
           <div className="flex items-end">
@@ -148,10 +151,12 @@ export function VideoUpdates() {
                 <TableRow>
                   <TableHead>ID</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Title</TableHead>
                   <TableHead>Video ID</TableHead>
                   <TableHead>Channel ID</TableHead>
                   <TableHead>Webhook Event</TableHead>
-                  <TableHead>Detected At</TableHead>
+                  <TableHead>Published At</TableHead>
+                  <TableHead>Created At</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -161,17 +166,23 @@ export function VideoUpdates() {
                       {update.id}
                     </TableCell>
                     <TableCell>{getUpdateTypeBadge(update.update_type)}</TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {truncate(update.video_id, 20)}
+                    <TableCell className="max-w-xs">
+                      {truncate(update.title, 40)}
                     </TableCell>
                     <TableCell className="font-mono text-xs">
-                      {truncate(update.channel_id, 20)}
+                      {truncate(update.video_id, 15)}
                     </TableCell>
                     <TableCell className="font-mono text-xs">
-                      {update.webhook_event_id || 'N/A'}
+                      {truncate(update.channel_id, 15)}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {update.webhook_event_id}
                     </TableCell>
                     <TableCell className="text-xs">
-                      {formatDate(update.detected_at)}
+                      {formatDate(update.published_at)}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {formatDate(update.created_at)}
                     </TableCell>
                   </TableRow>
                 ))}
