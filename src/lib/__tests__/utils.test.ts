@@ -9,6 +9,7 @@ describe('utils', () => {
     });
 
     it('should handle conditional classes', () => {
+      // eslint-disable-next-line no-constant-binary-expression
       const result = cn('text-sm', false && 'hidden', 'block');
       expect(result).toBe('text-sm block');
     });

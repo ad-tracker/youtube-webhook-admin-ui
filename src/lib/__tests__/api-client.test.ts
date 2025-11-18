@@ -70,7 +70,7 @@ describe('APIClient', () => {
     });
 
     it('should handle API errors', async () => {
-      global.fetch = vi.fn().mockResolvedValueOnce({
+      global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 401,
         headers: new Headers({ 'content-type': 'application/json' }),

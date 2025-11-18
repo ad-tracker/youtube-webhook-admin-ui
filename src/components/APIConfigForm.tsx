@@ -31,7 +31,12 @@ export function APIConfigForm() {
 
     // Validate URL format
     try {
-      new URL(baseURL);
+      const url = new URL(baseURL);
+      // Ensure URL has a valid protocol (http or https)
+      if (!url.protocol.startsWith('http')) {
+        setError('Please enter a valid URL');
+        return;
+      }
     } catch {
       setError('Please enter a valid URL');
       return;
@@ -64,7 +69,6 @@ export function APIConfigForm() {
                 placeholder="http://localhost:8000"
                 value={baseURL}
                 onChange={(e) => setBaseURL(e.target.value)}
-                required
               />
               <p className="text-xs text-muted-foreground">
                 The base URL of your YouTube Webhook API
@@ -79,7 +83,6 @@ export function APIConfigForm() {
                 placeholder="Enter your API key"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                required
               />
               <p className="text-xs text-muted-foreground">
                 Your API key for authentication (stored securely in session)
