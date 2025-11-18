@@ -68,6 +68,7 @@ export function APIProvider({ children }: APIProviderProps) {
 /**
  * Hook to access API configuration context
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAPI() {
   const context = useContext(APIContext);
   if (context === undefined) {
@@ -79,6 +80,7 @@ export function useAPI() {
 /**
  * Hook to ensure API is configured before using
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useRequireAPI() {
   const context = useAPI();
 
