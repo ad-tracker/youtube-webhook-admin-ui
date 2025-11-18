@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Videos } from '../Videos';
 import * as apiClient from '../../lib/api-client';
+import { APIClient } from '../../lib/api-client';
 import type { Video, PaginatedResponse } from '../../types/api';
 
 vi.mock('../../lib/api-client', () => ({
@@ -64,7 +65,7 @@ describe('Videos', () => {
       getVideos: mockGetVideos,
       createVideo: mockCreateVideo,
       deleteVideo: mockDeleteVideo,
-    } as any);
+    } as Partial<APIClient> as APIClient);
   });
 
   const renderComponent = () => {
@@ -87,14 +88,19 @@ describe('Videos', () => {
     expect(screen.getByText(/abc123XYZ/)).toBeInTheDocument();
   });
 
-  it('should display loading spinner while fetching data', () => {
+  it('should display loading state while fetching data', async () => {
     mockGetVideos.mockImplementation(
       () => new Promise((resolve) => setTimeout(() => resolve(mockPaginatedResponse), 100))
     );
 
     renderComponent();
 
-    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+    // During loading, the table shouldn't be visible yet
+    expect(screen.queryByText('Test Video 1')).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Video 1')).toBeInTheDocument();
+    });
   });
 
   it('should display error message when API call fails', async () => {

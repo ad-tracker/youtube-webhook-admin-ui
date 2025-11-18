@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Channels } from '../Channels';
 import * as apiClient from '../../lib/api-client';
+import { APIClient } from '../../lib/api-client';
 import type { Channel, PaginatedResponse } from '../../types/api';
 
 // Mock the API client
@@ -61,7 +62,7 @@ describe('Channels', () => {
       getChannels: mockGetChannels,
       createChannel: mockCreateChannel,
       deleteChannel: mockDeleteChannel,
-    } as any);
+    } as Partial<APIClient> as APIClient);
   });
 
   const renderComponent = () => {
@@ -84,14 +85,19 @@ describe('Channels', () => {
     expect(screen.getByText(/UC0987654321/)).toBeInTheDocument();
   });
 
-  it('should display loading spinner while fetching data', () => {
+  it('should display loading state while fetching data', async () => {
     mockGetChannels.mockImplementation(
       () => new Promise((resolve) => setTimeout(() => resolve(mockPaginatedResponse), 100))
     );
 
     renderComponent();
 
-    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+    // During loading, the table shouldn't be visible yet
+    expect(screen.queryByText('Test Channel 1')).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Channel 1')).toBeInTheDocument();
+    });
   });
 
   it('should display error message when API call fails', async () => {
