@@ -147,11 +147,11 @@ export function WebhookEvents() {
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
-                  <TableHead>Title</TableHead>
                   <TableHead>Video ID</TableHead>
-                  <TableHead>Channel</TableHead>
-                  <TableHead>Published</TableHead>
+                  <TableHead>Channel ID</TableHead>
+                  <TableHead>Received At</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Processing Error</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -161,17 +161,14 @@ export function WebhookEvents() {
                     <TableCell className="font-mono text-xs">
                       {event.id}
                     </TableCell>
-                    <TableCell className="max-w-xs">
-                      {truncate(event.title, 50)}
+                    <TableCell className="font-mono text-xs">
+                      {event.video_id || 'N/A'}
                     </TableCell>
                     <TableCell className="font-mono text-xs">
-                      {event.video_id}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {truncate(event.author_name, 30)}
+                      {event.channel_id || 'N/A'}
                     </TableCell>
                     <TableCell className="text-xs">
-                      {formatDate(event.published_at)}
+                      {formatDate(event.received_at)}
                     </TableCell>
                     <TableCell>
                       {event.processed ? (
@@ -184,6 +181,15 @@ export function WebhookEvents() {
                           <X className="mr-1 h-3 w-3" />
                           Pending
                         </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="max-w-xs text-xs">
+                      {event.processing_error ? (
+                        <span className="text-red-600" title={event.processing_error}>
+                          {truncate(event.processing_error, 30)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell>
