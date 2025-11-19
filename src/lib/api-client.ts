@@ -287,6 +287,19 @@ export class APIClient {
     });
   }
 
+  async createChannelFromURL(data: { url: string; callback_url?: string }): Promise<{
+    channel: Channel;
+    subscription?: any;
+    enrichment?: any;
+    was_existing: boolean;
+    message?: string;
+  }> {
+    return this.request('/api/v1/channels/from-url', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // ==================== Videos ====================
 
   async getVideos(filters: VideoFilters = {}): Promise<PaginatedResponse<Video>> {
