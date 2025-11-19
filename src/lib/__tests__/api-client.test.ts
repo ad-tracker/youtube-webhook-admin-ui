@@ -223,6 +223,68 @@ describe('APIClient', () => {
     });
   });
 
+  describe('Go SQL null type transformation', () => {
+    it('should transform sql.NullString with Valid=true to plain string', async () => {
+      const mockResponse = {
+        items: [
+          {
+            id: 1,
+            video_id: { String: 'test123', Valid: true },
+            channel_id: { String: 'UCtest', Valid: true },
+            processing_error: { String: '', Valid: false },
+            processed: true,
+            received_at: '2024-01-01T00:00:00Z',
+            created_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+        total: 1,
+        limit: 20,
+        offset: 0,
+      };
+
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => mockResponse,
+      });
+
+      const result = await client.getWebhookEvents();
+
+      expect(result.items[0].video_id).toBe('test123');
+      expect(result.items[0].channel_id).toBe('UCtest');
+      expect(result.items[0].processing_error).toBe(null);
+    });
+
+    it('should transform sql.NullTime with Valid=true to plain string', async () => {
+      const mockResponse = {
+        items: [
+          {
+            id: 1,
+            processed_at: { Time: '2024-01-01T00:00:00Z', Valid: true },
+            processed: true,
+            received_at: '2024-01-01T00:00:00Z',
+            created_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+        total: 1,
+        limit: 20,
+        offset: 0,
+      };
+
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => mockResponse,
+      });
+
+      const result = await client.getWebhookEvents();
+
+      expect(result.items[0].processed_at).toBe('2024-01-01T00:00:00Z');
+    });
+  });
+
   describe('error handling', () => {
     it('should handle non-JSON error responses', async () => {
       global.fetch = vi.fn().mockResolvedValueOnce({
@@ -234,6 +296,36 @@ describe('APIClient', () => {
       });
 
       await expect(client.getWebhookEvents()).rejects.toThrow('Server Error');
+    });
+
+    it('should handle HTML error pages with clean error message', async () => {
+      const htmlError = '<!DOCTYPE html><html><body>Error page</body></html>';
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        statusText: 'Bad Gateway',
+        headers: new Headers({ 'content-type': 'text/html' }),
+        text: async () => htmlError,
+      });
+
+      await expect(client.getWebhookEvents()).rejects.toThrow(
+        'Server error (502 Bad Gateway). The API may be unavailable.'
+      );
+    });
+
+    it('should handle HTML error pages starting with <html tag', async () => {
+      const htmlError = '<html><body>Error</body></html>';
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        statusText: 'Service Unavailable',
+        headers: new Headers({ 'content-type': 'text/html; charset=utf-8' }),
+        text: async () => htmlError,
+      });
+
+      await expect(client.getWebhookEvents()).rejects.toThrow(
+        'Server error (503 Service Unavailable). The API may be unavailable.'
+      );
     });
 
     it('should handle 204 No Content responses', async () => {
