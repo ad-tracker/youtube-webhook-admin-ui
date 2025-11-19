@@ -1,20 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { type ColumnDef } from '@tanstack/react-table';
 import { getAPIClient } from '../lib/api-client';
 import { formatDate, truncate } from '../lib/utils';
-import type { ChannelFilters, CreateChannelRequest } from '../types/api';
+import type { Channel, ChannelFilters, CreateChannelRequest, ChannelEnrichment } from '../types/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../components/ui/table';
+import { DataTable, ExpandToggleButton } from '../components/ui/data-table';
 import {
   Card,
   CardContent,
@@ -25,6 +19,7 @@ import {
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { Pagination } from '../components/Pagination';
+import { ChannelEnrichmentDetails } from '../components/ChannelEnrichmentDetails';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -50,6 +45,10 @@ export function Channels() {
     title: '',
     channel_url: '',
   });
+
+  // Store enrichments for expanded rows
+  const [enrichments, setEnrichments] = useState<Record<string, ChannelEnrichment | null>>({});
+  const [loadingEnrichments, setLoadingEnrichments] = useState<Set<string>>(new Set());
 
   // Fetch channels
   const { data, isLoading, error, refetch } = useQuery({
@@ -113,11 +112,11 @@ export function Channels() {
     }));
   };
 
-  const handleDelete = (channelId: string, title: string) => {
+  const handleDelete = useCallback((channelId: string, title: string) => {
     if (confirm(`Are you sure you want to delete channel "${title}"?`)) {
       deleteMutation.mutate(channelId);
     }
-  };
+  }, [deleteMutation]);
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,6 +126,112 @@ export function Channels() {
       createMutation.mutate(formData);
     }
   };
+
+  // Fetch enrichment when row is expanded
+  const fetchEnrichment = async (channelId: string) => {
+    if (enrichments[channelId] !== undefined || loadingEnrichments.has(channelId)) {
+      return; // Already loaded or loading
+    }
+
+    setLoadingEnrichments((prev) => new Set(prev).add(channelId));
+    try {
+      const enrichment = await getAPIClient().getChannelEnrichment(channelId);
+      setEnrichments((prev) => ({ ...prev, [channelId]: enrichment }));
+    } catch (error) {
+      console.error('Failed to fetch enrichment:', error);
+      setEnrichments((prev) => ({ ...prev, [channelId]: null }));
+    } finally {
+      setLoadingEnrichments((prev) => {
+        const next = new Set(prev);
+        next.delete(channelId);
+        return next;
+      });
+    }
+  };
+
+  // Define columns with TanStack Table
+  const columns = useMemo<ColumnDef<Channel>[]>(
+    () => [
+      {
+        id: 'expander',
+        header: '',
+        cell: ({ row }) => <ExpandToggleButton row={row} />,
+        enableHiding: false,
+        enableSorting: false,
+      },
+      {
+        accessorKey: 'channel_id',
+        header: 'Channel ID',
+        cell: ({ row }) => (
+          <span className="font-mono text-xs">{truncate(row.original.channel_id, 20)}</span>
+        ),
+      },
+      {
+        accessorKey: 'title',
+        header: 'Title',
+        cell: ({ row }) => (
+          <span className="font-medium">{truncate(row.original.title, 40)}</span>
+        ),
+      },
+      {
+        accessorKey: 'channel_url',
+        header: 'Channel URL',
+        cell: ({ row }) => (
+          <a
+            href={row.original.channel_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-600 hover:underline max-w-xs inline-block"
+          >
+            {truncate(row.original.channel_url, 40)}
+          </a>
+        ),
+      },
+      {
+        accessorKey: 'first_seen_at',
+        header: 'First Seen',
+        cell: ({ row }) => <span className="text-xs">{formatDate(row.original.first_seen_at)}</span>,
+        enableSorting: true,
+      },
+      {
+        accessorKey: 'last_updated_at',
+        header: 'Last Updated',
+        cell: ({ row }) => (
+          <span className="text-xs">{formatDate(row.original.last_updated_at)}</span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: 'created_at',
+        header: 'Created At',
+        cell: ({ row }) => <span className="text-xs">{formatDate(row.original.created_at)}</span>,
+        enableSorting: true,
+      },
+      {
+        accessorKey: 'updated_at',
+        header: 'Updated At',
+        cell: ({ row }) => <span className="text-xs">{formatDate(row.original.updated_at)}</span>,
+        enableSorting: true,
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleDelete(row.original.channel_id, row.original.title)}
+            disabled={deleteMutation.isPending}
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        ),
+        enableHiding: false,
+        enableSorting: false,
+      },
+    ],
+    [deleteMutation.isPending, handleDelete]
+  );
 
   return (
     <div className="space-y-6">
@@ -318,60 +423,47 @@ export function Channels() {
           <ErrorMessage message={(error as Error).message} />
         ) : data && data.items.length > 0 ? (
           <>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Channel ID</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Channel URL</TableHead>
-                  <TableHead>First Seen</TableHead>
-                  <TableHead>Last Updated</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.items.map((channel) => (
-                  <TableRow key={channel.channel_id}>
-                    <TableCell className="font-mono text-xs">
-                      {truncate(channel.channel_id, 20)}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {truncate(channel.title, 40)}
-                    </TableCell>
-                    <TableCell className="max-w-xs text-xs text-muted-foreground">
-                      <a
-                        href={channel.channel_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {truncate(channel.channel_url, 40)}
-                      </a>
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {formatDate(channel.first_seen_at)}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {formatDate(channel.last_updated_at)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            handleDelete(channel.channel_id, channel.title)
-                          }
-                          disabled={deleteMutation.isPending}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable
+              columns={columns}
+              data={data.items}
+              enableSorting={true}
+              enableColumnVisibility={true}
+              storageKey="channels-table"
+              getRowCanExpand={() => true}
+              renderExpandedRow={(row) => {
+                const channelId = row.original.channel_id;
+
+                // Fetch enrichment on first expand
+                if (!enrichments[channelId] && !loadingEnrichments.has(channelId)) {
+                  fetchEnrichment(channelId);
+                }
+
+                const enrichment = enrichments[channelId];
+                const isLoading = loadingEnrichments.has(channelId);
+
+                if (isLoading) {
+                  return (
+                    <div className="p-4">
+                      <LoadingSpinner />
+                    </div>
+                  );
+                }
+
+                if (!enrichment) {
+                  return (
+                    <div className="p-4 text-center text-gray-500">
+                      No enrichment data available for this channel
+                    </div>
+                  );
+                }
+
+                return <ChannelEnrichmentDetails enrichment={enrichment} />;
+              }}
+              initialColumnVisibility={{
+                created_at: false, // Hide by default
+                updated_at: false, // Hide by default
+              }}
+            />
             <Pagination
               currentPage={currentPage}
               totalItems={data.total}

@@ -1,20 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { type ColumnDef } from '@tanstack/react-table';
 import { getAPIClient } from '../lib/api-client';
 import { formatDate, truncate } from '../lib/utils';
-import type { VideoFilters, CreateVideoRequest } from '../types/api';
+import type { Video, VideoFilters, CreateVideoRequest, VideoEnrichment } from '../types/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../components/ui/table';
+import { DataTable, ExpandToggleButton } from '../components/ui/data-table';
 import {
   Card,
   CardContent,
@@ -25,6 +19,7 @@ import {
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { Pagination } from '../components/Pagination';
+import { VideoEnrichmentDetails } from '../components/VideoEnrichmentDetails';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -48,6 +43,10 @@ export function Videos() {
     video_url: '',
     published_at: new Date().toISOString(),
   });
+
+  // Store enrichments for expanded rows
+  const [enrichments, setEnrichments] = useState<Record<string, VideoEnrichment | null>>({});
+  const [loadingEnrichments, setLoadingEnrichments] = useState<Set<string>>(new Set());
 
   // Fetch videos
   const { data, isLoading, error, refetch } = useQuery({
@@ -100,16 +99,123 @@ export function Videos() {
     }));
   };
 
-  const handleDelete = (videoId: string, title: string) => {
+  const handleDelete = useCallback((videoId: string, title: string) => {
     if (confirm(`Are you sure you want to delete video "${title}"?`)) {
       deleteMutation.mutate(videoId);
     }
-  };
+  }, [deleteMutation]);
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     createMutation.mutate(formData);
   };
+
+  // Fetch enrichment when row is expanded
+  const fetchEnrichment = async (videoId: string) => {
+    if (enrichments[videoId] !== undefined || loadingEnrichments.has(videoId)) {
+      return; // Already loaded or loading
+    }
+
+    setLoadingEnrichments((prev) => new Set(prev).add(videoId));
+    try {
+      const enrichment = await getAPIClient().getVideoEnrichment(videoId);
+      setEnrichments((prev) => ({ ...prev, [videoId]: enrichment }));
+    } catch (error) {
+      console.error('Failed to fetch enrichment:', error);
+      setEnrichments((prev) => ({ ...prev, [videoId]: null }));
+    } finally {
+      setLoadingEnrichments((prev) => {
+        const next = new Set(prev);
+        next.delete(videoId);
+        return next;
+      });
+    }
+  };
+
+  // Define columns with TanStack Table
+  const columns = useMemo<ColumnDef<Video>[]>(
+    () => [
+      {
+        id: 'expander',
+        header: '',
+        cell: ({ row }) => <ExpandToggleButton row={row} />,
+        enableHiding: false,
+        enableSorting: false,
+      },
+      {
+        accessorKey: 'video_id',
+        header: 'Video ID',
+        cell: ({ row }) => (
+          <span className="font-mono text-xs">{truncate(row.original.video_id, 15)}</span>
+        ),
+      },
+      {
+        accessorKey: 'title',
+        header: 'Title',
+        cell: ({ row }) => (
+          <span className="max-w-xs font-medium">{truncate(row.original.title, 50)}</span>
+        ),
+      },
+      {
+        accessorKey: 'channel_id',
+        header: 'Channel ID',
+        cell: ({ row }) => (
+          <span className="font-mono text-xs">{truncate(row.original.channel_id, 15)}</span>
+        ),
+      },
+      {
+        accessorKey: 'video_url',
+        header: 'Video URL',
+        cell: ({ row }) => (
+          <a
+            href={row.original.video_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-600 hover:underline"
+          >
+            {truncate(row.original.video_url, 30)}
+          </a>
+        ),
+      },
+      {
+        accessorKey: 'published_at',
+        header: 'Published',
+        cell: ({ row }) => <span className="text-xs">{formatDate(row.original.published_at)}</span>,
+        enableSorting: true,
+      },
+      {
+        accessorKey: 'last_updated_at',
+        header: 'Last Updated',
+        cell: ({ row }) => (
+          <span className="text-xs">{formatDate(row.original.last_updated_at)}</span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: 'first_seen_at',
+        header: 'First Seen',
+        cell: ({ row }) => <span className="text-xs">{formatDate(row.original.first_seen_at)}</span>,
+        enableSorting: true,
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleDelete(row.original.video_id, row.original.title)}
+            disabled={deleteMutation.isPending}
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        ),
+        enableHiding: false,
+        enableSorting: false,
+      },
+    ],
+    [deleteMutation.isPending, handleDelete]
+  );
 
   return (
     <div className="space-y-6">
@@ -261,60 +367,46 @@ export function Videos() {
           <ErrorMessage message={(error as Error).message} />
         ) : data && data.items.length > 0 ? (
           <>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Video ID</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Channel ID</TableHead>
-                  <TableHead>Video URL</TableHead>
-                  <TableHead>Published</TableHead>
-                  <TableHead>Last Updated</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.items.map((video) => (
-                  <TableRow key={video.video_id}>
-                    <TableCell className="font-mono text-xs">
-                      {truncate(video.video_id, 15)}
-                    </TableCell>
-                    <TableCell className="max-w-xs font-medium">
-                      {truncate(video.title, 50)}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {truncate(video.channel_id, 15)}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      <a
-                        href={video.video_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {truncate(video.video_url, 30)}
-                      </a>
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {formatDate(video.published_at)}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {formatDate(video.last_updated_at)}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDelete(video.video_id, video.title)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable
+              columns={columns}
+              data={data.items}
+              enableSorting={true}
+              enableColumnVisibility={true}
+              storageKey="videos-table"
+              getRowCanExpand={() => true}
+              renderExpandedRow={(row) => {
+                const videoId = row.original.video_id;
+
+                // Fetch enrichment on first expand
+                if (!enrichments[videoId] && !loadingEnrichments.has(videoId)) {
+                  fetchEnrichment(videoId);
+                }
+
+                const enrichment = enrichments[videoId];
+                const isLoading = loadingEnrichments.has(videoId);
+
+                if (isLoading) {
+                  return (
+                    <div className="p-4">
+                      <LoadingSpinner />
+                    </div>
+                  );
+                }
+
+                if (!enrichment) {
+                  return (
+                    <div className="p-4 text-center text-gray-500">
+                      No enrichment data available for this video
+                    </div>
+                  );
+                }
+
+                return <VideoEnrichmentDetails enrichment={enrichment} />;
+              }}
+              initialColumnVisibility={{
+                first_seen_at: false, // Hide by default
+              }}
+            />
             <Pagination
               currentPage={currentPage}
               totalItems={data.total}

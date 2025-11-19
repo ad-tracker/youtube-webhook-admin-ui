@@ -1,22 +1,16 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { type ColumnDef } from '@tanstack/react-table';
 import { getAPIClient } from '../lib/api-client';
 import { formatDate, truncate } from '../lib/utils';
-import type { PubSubSubscriptionFilters, CreatePubSubSubscriptionRequest } from '../types/api';
+import type { PubSubSubscription, PubSubSubscriptionFilters, CreatePubSubSubscriptionRequest } from '../types/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select } from '../components/ui/select';
 import { Badge } from '../components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../components/ui/table';
+import { DataTable } from '../components/ui/data-table';
 import {
   Card,
   CardContent,
@@ -101,11 +95,11 @@ export function Subscriptions() {
     }));
   };
 
-  const handleDelete = (id: number, channelId: string) => {
+  const handleDelete = useCallback((id: number, channelId: string) => {
     if (confirm(`Are you sure you want to delete subscription for channel "${channelId}"?`)) {
       deleteMutation.mutate(id);
     }
-  };
+  }, [deleteMutation]);
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,6 +120,127 @@ export function Subscriptions() {
         return <Badge variant="outline">{status}</Badge>;
     }
   };
+
+  // Define columns with TanStack Table
+  const columns = useMemo<ColumnDef<PubSubSubscription>[]>(
+    () => [
+      {
+        accessorKey: 'id',
+        header: 'ID',
+        cell: ({ row }) => (
+          <span className="font-mono text-xs">{row.original.id}</span>
+        ),
+      },
+      {
+        accessorKey: 'channel_id',
+        header: 'Channel ID',
+        cell: ({ row }) => (
+          <span className="font-mono text-xs">{truncate(row.original.channel_id, 20)}</span>
+        ),
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => getStatusBadge(row.original.status),
+      },
+      {
+        accessorKey: 'callback_url',
+        header: 'Callback URL',
+        cell: ({ row }) => (
+          <span className="text-xs max-w-xs inline-block">{truncate(row.original.callback_url, 40)}</span>
+        ),
+      },
+      {
+        accessorKey: 'topic_url',
+        header: 'Topic URL',
+        cell: ({ row }) => (
+          <a
+            href={row.original.topic_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-600 hover:underline max-w-xs inline-block"
+          >
+            {truncate(row.original.topic_url, 35)}
+          </a>
+        ),
+      },
+      {
+        accessorKey: 'hub_url',
+        header: 'Hub URL',
+        cell: ({ row }) => (
+          <span className="text-xs max-w-xs inline-block">{truncate(row.original.hub_url, 35)}</span>
+        ),
+      },
+      {
+        accessorKey: 'lease_seconds',
+        header: 'Lease (sec)',
+        cell: ({ row }) => (
+          <span className="text-xs">{row.original.lease_seconds.toLocaleString()}</span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: 'secret',
+        header: 'Secret',
+        cell: ({ row }) => (
+          <span className="font-mono text-xs">
+            {row.original.secret ? truncate(row.original.secret, 12) : 'N/A'}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'last_verified_at',
+        header: 'Last Verified',
+        cell: ({ row }) => (
+          <span className="text-xs">
+            {row.original.last_verified_at ? formatDate(row.original.last_verified_at) : 'N/A'}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: 'expires_at',
+        header: 'Expires At',
+        cell: ({ row }) => (
+          <span className="text-xs">{formatDate(row.original.expires_at)}</span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: 'created_at',
+        header: 'Created At',
+        cell: ({ row }) => (
+          <span className="text-xs">{formatDate(row.original.created_at)}</span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: 'updated_at',
+        header: 'Updated At',
+        cell: ({ row }) => (
+          <span className="text-xs">{formatDate(row.original.updated_at)}</span>
+        ),
+        enableSorting: true,
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleDelete(row.original.id, row.original.channel_id)}
+            disabled={deleteMutation.isPending}
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        ),
+        enableHiding: false,
+        enableSorting: false,
+      },
+    ],
+    [deleteMutation.isPending, handleDelete]
+  );
 
   return (
     <div className="space-y-6">
@@ -262,53 +377,21 @@ export function Subscriptions() {
           <ErrorMessage message={(error as Error).message} />
         ) : data && data.items.length > 0 ? (
           <>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Channel ID</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Callback URL</TableHead>
-                  <TableHead>Last Verified</TableHead>
-                  <TableHead>Expires At</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.items.map((subscription) => (
-                  <TableRow key={subscription.id}>
-                    <TableCell className="font-mono text-xs">
-                      {subscription.id}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {truncate(subscription.channel_id, 20)}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(subscription.status)}</TableCell>
-                    <TableCell className="max-w-xs text-xs">
-                      {truncate(subscription.callback_url, 40)}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {subscription.last_verified_at ? formatDate(subscription.last_verified_at) : 'N/A'}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {formatDate(subscription.expires_at)}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          handleDelete(subscription.id, subscription.channel_id)
-                        }
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable
+              columns={columns}
+              data={data.items}
+              enableSorting={true}
+              enableColumnVisibility={true}
+              storageKey="subscriptions-table"
+              initialColumnVisibility={{
+                topic_url: false, // Hide by default
+                hub_url: false, // Hide by default
+                secret: false, // Hide by default
+                lease_seconds: false, // Hide by default
+                created_at: false, // Hide by default
+                updated_at: false, // Hide by default
+              }}
+            />
             <Pagination
               currentPage={currentPage}
               totalItems={data.total}
