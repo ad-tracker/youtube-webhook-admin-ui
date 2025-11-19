@@ -145,7 +145,6 @@ export interface PubSubSubscription {
   lease_seconds: number;
   expires_at: string;
   status: 'pending' | 'active' | 'expired' | 'failed';
-  secret: string | null;
   last_verified_at: string | null;
   created_at: string;
   updated_at: string;
@@ -161,7 +160,6 @@ export interface CreatePubSubSubscriptionRequest {
   channel_id: string;
   callback_url: string;
   lease_seconds?: number;
-  secret?: string;
 }
 
 export interface UpdatePubSubSubscriptionRequest {
