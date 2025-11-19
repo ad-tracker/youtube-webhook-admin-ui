@@ -180,15 +180,6 @@ export function Subscriptions() {
         enableSorting: true,
       },
       {
-        accessorKey: 'secret',
-        header: 'Secret',
-        cell: ({ row }) => (
-          <span className="font-mono text-xs">
-            {row.original.secret ? truncate(row.original.secret, 12) : 'N/A'}
-          </span>
-        ),
-      },
-      {
         accessorKey: 'last_verified_at',
         header: 'Last Verified',
         cell: ({ row }) => (
