@@ -63,6 +63,21 @@ describe('utils', () => {
       const result = truncate('Exactly20Characters!', 20);
       expect(result).toBe('Exactly20Characters!');
     });
+
+    it('should handle number inputs', () => {
+      const result = truncate(12345, 3);
+      expect(result).toBe('123...');
+    });
+
+    it('should handle zero', () => {
+      const result = truncate(0, 10);
+      expect(result).toBe('0');
+    });
+
+    it('should not truncate short numbers', () => {
+      const result = truncate(42, 10);
+      expect(result).toBe('42');
+    });
   });
 
   describe('safeJsonParse', () => {

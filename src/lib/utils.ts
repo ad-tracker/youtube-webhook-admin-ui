@@ -37,10 +37,11 @@ export function formatDateForAPI(date: Date | null | undefined): string | undefi
 /**
  * Truncates a string to a specified length
  */
-export function truncate(str: string | null | undefined, length: number): string {
-  if (!str) return '';
-  if (str.length <= length) return str;
-  return str.substring(0, length) + '...';
+export function truncate(str: string | null | undefined | number, length: number): string {
+  if (!str && str !== 0) return '';
+  const strValue = String(str);
+  if (strValue.length <= length) return strValue;
+  return strValue.substring(0, length) + '...';
 }
 
 /**
