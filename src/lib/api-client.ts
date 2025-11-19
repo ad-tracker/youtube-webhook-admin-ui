@@ -38,38 +38,82 @@ export class APIClientError extends Error {
 }
 
 /**
+ * Type guard to check if value is a Go sql.NullString
+ */
+interface GoNullString {
+  String: string;
+  Valid: boolean;
+}
+
+/**
+ * Type guard to check if value is a Go sql.NullTime
+ */
+interface GoNullTime {
+  Time: string;
+  Valid: boolean;
+}
+
+/**
+ * Checks if an object is a Go sql.NullString
+ */
+function isGoNullString(obj: unknown): obj is GoNullString {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'String' in obj &&
+    'Valid' in obj &&
+    typeof (obj as GoNullString).String === 'string' &&
+    typeof (obj as GoNullString).Valid === 'boolean'
+  );
+}
+
+/**
+ * Checks if an object is a Go sql.NullTime
+ */
+function isGoNullTime(obj: unknown): obj is GoNullTime {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'Time' in obj &&
+    'Valid' in obj &&
+    typeof (obj as GoNullTime).Time === 'string' &&
+    typeof (obj as GoNullTime).Valid === 'boolean'
+  );
+}
+
+/**
  * Transforms Go SQL null types (sql.NullString, sql.NullTime) to plain values
  */
-function transformGoNullTypes(obj: any): any {
+function transformGoNullTypes<T>(obj: T): T {
   if (obj === null || obj === undefined) {
     return obj;
   }
 
   // Handle arrays
   if (Array.isArray(obj)) {
-    return obj.map(transformGoNullTypes);
+    return obj.map(transformGoNullTypes) as T;
   }
 
   // Handle objects
   if (typeof obj === 'object') {
     // Check if it's a Go sql.NullString format
-    if ('String' in obj && 'Valid' in obj) {
-      return obj.Valid ? obj.String : null;
+    if (isGoNullString(obj)) {
+      return (obj.Valid ? obj.String : null) as T;
     }
 
     // Check if it's a Go sql.NullTime format
-    if ('Time' in obj && 'Valid' in obj) {
-      return obj.Valid ? obj.Time : null;
+    if (isGoNullTime(obj)) {
+      return (obj.Valid ? obj.Time : null) as T;
     }
 
     // Recursively transform nested objects
-    const transformed: any = {};
+    const transformed: Record<string, unknown> = {};
     for (const key in obj) {
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        transformed[key] = transformGoNullTypes(obj[key]);
+        transformed[key] = transformGoNullTypes((obj as Record<string, unknown>)[key]);
       }
     }
-    return transformed;
+    return transformed as T;
   }
 
   return obj;
