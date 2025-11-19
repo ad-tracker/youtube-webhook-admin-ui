@@ -40,6 +40,11 @@ export function Channels() {
   });
   const [searchTitle, setSearchTitle] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [addMode, setAddMode] = useState<'url' | 'manual'>('url');
+  const [urlFormData, setUrlFormData] = useState({
+    url: '',
+    callback_url: '',
+  });
   const [formData, setFormData] = useState<CreateChannelRequest>({
     channel_id: '',
     title: '',
@@ -52,7 +57,7 @@ export function Channels() {
     queryFn: () => getAPIClient().getChannels(filters),
   });
 
-  // Create channel mutation
+  // Create channel mutation (manual mode)
   const createMutation = useMutation({
     mutationFn: (data: CreateChannelRequest) => getAPIClient().createChannel(data),
     onSuccess: () => {
@@ -62,6 +67,20 @@ export function Channels() {
         channel_id: '',
         title: '',
         channel_url: '',
+      });
+    },
+  });
+
+  // Create channel from URL mutation
+  const createFromURLMutation = useMutation({
+    mutationFn: (data: { url: string; callback_url?: string }) =>
+      getAPIClient().createChannelFromURL(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      setShowCreateForm(false);
+      setUrlFormData({
+        url: '',
+        callback_url: '',
       });
     },
   });
@@ -102,7 +121,11 @@ export function Channels() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate(formData);
+    if (addMode === 'url') {
+      createFromURLMutation.mutate(urlFormData);
+    } else {
+      createMutation.mutate(formData);
+    }
   };
 
   return (
@@ -132,51 +155,123 @@ export function Channels() {
           <CardHeader>
             <CardTitle>Add New Channel</CardTitle>
             <CardDescription>
-              Enter the channel information to start tracking
+              Add a channel by URL or enter channel details manually
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleCreate} className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <Label htmlFor="channel_id">Channel ID *</Label>
-                  <Input
-                    id="channel_id"
-                    value={formData.channel_id}
-                    onChange={(e) =>
-                      setFormData({ ...formData, channel_id: e.target.value })
-                    }
-                    placeholder="UC..."
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="title">Title *</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) =>
-                      setFormData({ ...formData, title: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <Label htmlFor="channel_url">Channel URL *</Label>
-                  <Input
-                    id="channel_url"
-                    value={formData.channel_url}
-                    onChange={(e) =>
-                      setFormData({ ...formData, channel_url: e.target.value })
-                    }
-                    placeholder="https://www.youtube.com/channel/..."
-                    required
-                  />
-                </div>
+              {/* Mode Toggle */}
+              <div className="flex gap-2 border-b pb-4">
+                <Button
+                  type="button"
+                  variant={addMode === 'url' ? 'default' : 'outline'}
+                  onClick={() => setAddMode('url')}
+                  className="flex-1"
+                >
+                  By URL
+                </Button>
+                <Button
+                  type="button"
+                  variant={addMode === 'manual' ? 'default' : 'outline'}
+                  onClick={() => setAddMode('manual')}
+                  className="flex-1"
+                >
+                  Manual Entry
+                </Button>
               </div>
+
+              {/* URL Mode Form */}
+              {addMode === 'url' && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="youtube_url">YouTube Channel URL *</Label>
+                    <Input
+                      id="youtube_url"
+                      value={urlFormData.url}
+                      onChange={(e) =>
+                        setUrlFormData({ ...urlFormData, url: e.target.value })
+                      }
+                      placeholder="https://www.youtube.com/@mikeokay"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Supports @handle, /channel/, /c/, and /user/ formats
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="callback_url">Callback URL (Optional)</Label>
+                    <Input
+                      id="callback_url"
+                      value={urlFormData.callback_url}
+                      onChange={(e) =>
+                        setUrlFormData({ ...urlFormData, callback_url: e.target.value })
+                      }
+                      placeholder="https://your-domain.com/webhook"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Auto-creates PubSubHubbub subscription if provided
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Manual Mode Form */}
+              {addMode === 'manual' && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <Label htmlFor="channel_id">Channel ID *</Label>
+                    <Input
+                      id="channel_id"
+                      value={formData.channel_id}
+                      onChange={(e) =>
+                        setFormData({ ...formData, channel_id: e.target.value })
+                      }
+                      placeholder="UC..."
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="title">Title *</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) =>
+                        setFormData({ ...formData, title: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="channel_url">Channel URL *</Label>
+                    <Input
+                      id="channel_url"
+                      value={formData.channel_url}
+                      onChange={(e) =>
+                        setFormData({ ...formData, channel_url: e.target.value })
+                      }
+                      placeholder="https://www.youtube.com/channel/..."
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2">
-                <Button type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? 'Creating...' : 'Create Channel'}
+                <Button
+                  type="submit"
+                  disabled={
+                    addMode === 'url'
+                      ? createFromURLMutation.isPending
+                      : createMutation.isPending
+                  }
+                >
+                  {addMode === 'url'
+                    ? createFromURLMutation.isPending
+                      ? 'Resolving...'
+                      : 'Add Channel'
+                    : createMutation.isPending
+                    ? 'Creating...'
+                    : 'Create Channel'}
                 </Button>
                 <Button
                   type="button"
@@ -186,7 +281,10 @@ export function Channels() {
                   Cancel
                 </Button>
               </div>
-              {createMutation.error && (
+              {addMode === 'url' && createFromURLMutation.error && (
+                <ErrorMessage message={(createFromURLMutation.error as Error).message} />
+              )}
+              {addMode === 'manual' && createMutation.error && (
                 <ErrorMessage message={(createMutation.error as Error).message} />
               )}
             </form>
