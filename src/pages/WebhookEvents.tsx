@@ -171,7 +171,7 @@ export function WebhookEvents() {
                       {formatDate(event.received_at)}
                     </TableCell>
                     <TableCell>
-                      {event.processed ? (
+                      {Boolean(event.processed) ? (
                         <Badge variant="success">
                           <Check className="mr-1 h-3 w-3" />
                           Processed
