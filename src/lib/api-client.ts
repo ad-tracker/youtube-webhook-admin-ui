@@ -38,7 +38,6 @@ export class APIClientError extends Error {
 }
 
 /**
-<<<<<<< HEAD
  * Type guard to check if value is a Go sql.NullString
  */
 interface GoNullString {
