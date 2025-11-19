@@ -38,6 +38,44 @@ export class APIClientError extends Error {
 }
 
 /**
+ * Transforms Go SQL null types (sql.NullString, sql.NullTime) to plain values
+ */
+function transformGoNullTypes(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  // Handle arrays
+  if (Array.isArray(obj)) {
+    return obj.map(transformGoNullTypes);
+  }
+
+  // Handle objects
+  if (typeof obj === 'object') {
+    // Check if it's a Go sql.NullString format
+    if ('String' in obj && 'Valid' in obj) {
+      return obj.Valid ? obj.String : null;
+    }
+
+    // Check if it's a Go sql.NullTime format
+    if ('Time' in obj && 'Valid' in obj) {
+      return obj.Valid ? obj.Time : null;
+    }
+
+    // Recursively transform nested objects
+    const transformed: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        transformed[key] = transformGoNullTypes(obj[key]);
+      }
+    }
+    return transformed;
+  }
+
+  return obj;
+}
+
+/**
  * API Client for YouTube Webhook Ingestion API
  * Handles all HTTP requests with proper authentication and error handling
  */
@@ -85,8 +123,18 @@ export class APIClient {
           );
         } else {
           const errorText = await response.text();
+          // Check if response is HTML (common when nginx/proxy returns error pages)
+          const isHtml = errorText.trim().startsWith('<!DOCTYPE') ||
+                         errorText.trim().startsWith('<html') ||
+                         contentType?.includes('text/html');
+
+          // If HTML error page, provide a clean error message instead of raw HTML
+          const cleanError = isHtml
+            ? `Server error (${response.status} ${response.statusText}). The API may be unavailable.`
+            : errorText;
+
           throw new APIClientError(
-            errorText || `HTTP ${response.status}: ${response.statusText}`,
+            cleanError || `HTTP ${response.status}: ${response.statusText}`,
             response.status
           );
         }
@@ -101,7 +149,9 @@ export class APIClient {
         throw new APIClientError('Expected JSON response from API', response.status);
       }
 
-      return (await response.json()) as T;
+      const jsonData = await response.json();
+      // Transform Go SQL null types to plain values
+      return transformGoNullTypes(jsonData) as T;
     } catch (error) {
       if (error instanceof APIClientError) {
         throw error;

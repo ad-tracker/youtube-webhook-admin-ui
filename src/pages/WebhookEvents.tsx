@@ -159,7 +159,7 @@ export function WebhookEvents() {
                 {data.items.map((event) => (
                   <TableRow key={event.id}>
                     <TableCell className="font-mono text-xs">
-                      {event.id}
+                      {String(event.id)}
                     </TableCell>
                     <TableCell className="font-mono text-xs">
                       {event.video_id || 'N/A'}
@@ -171,7 +171,7 @@ export function WebhookEvents() {
                       {formatDate(event.received_at)}
                     </TableCell>
                     <TableCell>
-                      {event.processed ? (
+                      {Boolean(event.processed) ? (
                         <Badge variant="success">
                           <Check className="mr-1 h-3 w-3" />
                           Processed
