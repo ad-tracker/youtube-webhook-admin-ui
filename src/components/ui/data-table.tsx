@@ -207,7 +207,7 @@ export function DataTable<TData, TValue>({
 }
 
 // Helper component for expandable row toggle button
-export function ExpandToggleButton({ row }: { row: Row<any> }) {
+export function ExpandToggleButton<TData>({ row }: { row: Row<TData> }) {
   if (!row.getCanExpand()) {
     return null;
   }

@@ -254,7 +254,7 @@ export interface VideoEnrichment {
   location_longitude: number | null;
 
   // Content rating
-  content_rating: Record<string, any> | null;
+  content_rating: Record<string, unknown> | null;
 
   // Channel info
   channel_title: string | null;
@@ -264,7 +264,7 @@ export interface VideoEnrichment {
   api_response_etag: string | null;
   quota_cost: number;
   api_parts_requested: string[] | null;
-  raw_api_response: Record<string, any> | null;
+  raw_api_response: Record<string, unknown> | null;
 
   // Timestamps
   created_at: string;
@@ -322,7 +322,7 @@ export interface ChannelEnrichment {
   api_response_etag: string | null;
   quota_cost: number;
   api_parts_requested: string[] | null;
-  raw_api_response: Record<string, any> | null;
+  raw_api_response: Record<string, unknown> | null;
 
   // Timestamps
   created_at: string;

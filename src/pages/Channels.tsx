@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { type ColumnDef } from '@tanstack/react-table';
@@ -112,11 +112,11 @@ export function Channels() {
     }));
   };
 
-  const handleDelete = (channelId: string, title: string) => {
+  const handleDelete = useCallback((channelId: string, title: string) => {
     if (confirm(`Are you sure you want to delete channel "${title}"?`)) {
       deleteMutation.mutate(channelId);
     }
-  };
+  }, [deleteMutation]);
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,7 +230,7 @@ export function Channels() {
         enableSorting: false,
       },
     ],
-    [deleteMutation.isPending]
+    [deleteMutation.isPending, handleDelete]
   );
 
   return (

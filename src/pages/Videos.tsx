@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { type ColumnDef } from '@tanstack/react-table';
@@ -99,11 +99,11 @@ export function Videos() {
     }));
   };
 
-  const handleDelete = (videoId: string, title: string) => {
+  const handleDelete = useCallback((videoId: string, title: string) => {
     if (confirm(`Are you sure you want to delete video "${title}"?`)) {
       deleteMutation.mutate(videoId);
     }
-  };
+  }, [deleteMutation]);
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,7 +214,7 @@ export function Videos() {
         enableSorting: false,
       },
     ],
-    [deleteMutation.isPending]
+    [deleteMutation.isPending, handleDelete]
   );
 
   return (

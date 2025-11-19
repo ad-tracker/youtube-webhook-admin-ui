@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { type ColumnDef } from '@tanstack/react-table';
@@ -95,11 +95,11 @@ export function Subscriptions() {
     }));
   };
 
-  const handleDelete = (id: number, channelId: string) => {
+  const handleDelete = useCallback((id: number, channelId: string) => {
     if (confirm(`Are you sure you want to delete subscription for channel "${channelId}"?`)) {
       deleteMutation.mutate(id);
     }
-  };
+  }, [deleteMutation]);
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,7 +239,7 @@ export function Subscriptions() {
         enableSorting: false,
       },
     ],
-    [deleteMutation.isPending]
+    [deleteMutation.isPending, handleDelete]
   );
 
   return (
