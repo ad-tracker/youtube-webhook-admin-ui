@@ -289,8 +289,8 @@ export class APIClient {
 
   async createChannelFromURL(data: { url: string; callback_url?: string }): Promise<{
     channel: Channel;
-    subscription?: any;
-    enrichment?: any;
+    subscription?: PubSubSubscription;
+    enrichment?: Record<string, unknown>;
     was_existing: boolean;
     message?: string;
   }> {
