@@ -2,6 +2,7 @@ import type {
   APIConfig,
   APIError,
   Channel,
+  ChannelEnrichment,
   ChannelFilters,
   CreateChannelRequest,
   CreatePubSubSubscriptionRequest,
@@ -15,6 +16,7 @@ import type {
   UpdateVideoRequest,
   UpdateWebhookEventRequest,
   Video,
+  VideoEnrichment,
   VideoFilters,
   VideoUpdate,
   VideoUpdateFilters,
@@ -391,6 +393,58 @@ export class APIClient {
     return this.request<void>(`/api/v1/subscriptions/${id}?unsubscribe=true`, {
       method: 'DELETE',
     });
+  }
+
+  // ==================== Enrichments ====================
+
+  async getVideoEnrichment(videoId: string): Promise<VideoEnrichment | null> {
+    try {
+      return await this.request<VideoEnrichment>(
+        `/api/v1/enrichments/videos/${videoId}`
+      );
+    } catch (error) {
+      if (error instanceof APIClientError && error.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async getBatchVideoEnrichments(
+    videoIds: string[]
+  ): Promise<Record<string, VideoEnrichment>> {
+    return this.request<Record<string, VideoEnrichment>>(
+      '/api/v1/enrichments/videos/batch',
+      {
+        method: 'POST',
+        body: JSON.stringify({ ids: videoIds }),
+      }
+    );
+  }
+
+  async getChannelEnrichment(channelId: string): Promise<ChannelEnrichment | null> {
+    try {
+      return await this.request<ChannelEnrichment>(
+        `/api/v1/enrichments/channels/${channelId}`
+      );
+    } catch (error) {
+      if (error instanceof APIClientError && error.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async getBatchChannelEnrichments(
+    channelIds: string[]
+  ): Promise<Record<string, ChannelEnrichment>> {
+    return this.request<Record<string, ChannelEnrichment>>(
+      '/api/v1/enrichments/channels/batch',
+      {
+        method: 'POST',
+        body: JSON.stringify({ ids: channelIds }),
+      }
+    );
   }
 }
 
