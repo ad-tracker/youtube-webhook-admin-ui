@@ -123,6 +123,11 @@ describe('Channels', () => {
     await user.click(addButton);
 
     expect(screen.getByText('Add New Channel')).toBeInTheDocument();
+
+    // Form defaults to URL mode, so click "Manual Entry" to switch
+    const manualEntryButton = screen.getByRole('button', { name: /manual entry/i });
+    await user.click(manualEntryButton);
+
     expect(screen.getByLabelText(/channel id/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/channel url/i)).toBeInTheDocument();
@@ -139,6 +144,10 @@ describe('Channels', () => {
     // Open create form
     const addButton = screen.getByRole('button', { name: /add channel/i });
     await user.click(addButton);
+
+    // Form defaults to URL mode, so click "Manual Entry" to switch
+    const manualEntryButton = screen.getByRole('button', { name: /manual entry/i });
+    await user.click(manualEntryButton);
 
     // Fill in form
     const channelIdInput = screen.getByLabelText(/channel id/i);
