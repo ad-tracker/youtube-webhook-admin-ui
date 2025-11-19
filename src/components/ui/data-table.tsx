@@ -66,13 +66,17 @@ export function DataTable<TData, TValue>({
   );
 
   // Save column visibility to localStorage when it changes
-  const handleColumnVisibilityChange = (visibility: VisibilityState) => {
-    setColumnVisibility(visibility);
+  const handleColumnVisibilityChange = (updaterOrValue: VisibilityState | ((old: VisibilityState) => VisibilityState)) => {
+    const newVisibility = typeof updaterOrValue === 'function'
+      ? updaterOrValue(columnVisibility)
+      : updaterOrValue;
+
+    setColumnVisibility(newVisibility);
     if (storageKey) {
       try {
         localStorage.setItem(
           `table-visibility-${storageKey}`,
-          JSON.stringify(visibility)
+          JSON.stringify(newVisibility)
         );
       } catch (error) {
         console.error('Failed to save column visibility:', error);
