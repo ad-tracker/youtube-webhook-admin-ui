@@ -337,6 +337,25 @@ export interface BatchEnrichmentRequest {
   ids: string[]; // video_ids or channel_ids
 }
 
+// Blocked Videos
+export interface BlockedVideo {
+  id: number;
+  video_id: string;
+  reason: string;
+  created_at: string;
+  created_by: string | null;
+}
+
+export interface BlockedVideoFilters extends PaginationParams, OrderParams {
+  video_id?: string;
+}
+
+export interface CreateBlockedVideoRequest {
+  video_id: string;
+  reason: string;
+  created_by?: string;
+}
+
 // API Configuration
 export interface APIConfig {
   baseURL: string;

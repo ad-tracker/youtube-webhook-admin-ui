@@ -4,6 +4,7 @@ import {
   File,
   LogOut,
   Radio,
+  ShieldX,
   Video,
   Youtube,
 } from 'lucide-react';
@@ -30,6 +31,11 @@ const navItems = [
     name: 'Videos',
     path: '/videos',
     icon: Video,
+  },
+  {
+    name: 'Blocked Videos',
+    path: '/blocked-videos',
+    icon: ShieldX,
   },
   {
     name: 'Video Updates',
