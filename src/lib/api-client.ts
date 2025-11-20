@@ -1,9 +1,12 @@
 import type {
   APIConfig,
   APIError,
+  BlockedVideo,
+  BlockedVideoFilters,
   Channel,
   ChannelEnrichment,
   ChannelFilters,
+  CreateBlockedVideoRequest,
   CreateChannelRequest,
   CreatePubSubSubscriptionRequest,
   CreateVideoRequest,
@@ -396,6 +399,36 @@ export class APIClient {
   }
 
   // ==================== Enrichments ====================
+
+  // ========== Blocked Videos ==========
+
+  async getBlockedVideos(
+    filters: BlockedVideoFilters = {}
+  ): Promise<{ data: BlockedVideo[]; total: number; limit: number; offset: number }> {
+    const queryString = this.buildQueryString(filters);
+    return this.request<{ data: BlockedVideo[]; total: number; limit: number; offset: number }>(
+      `/api/v1/blocked-videos${queryString}`
+    );
+  }
+
+  async getBlockedVideo(videoId: string): Promise<BlockedVideo> {
+    return this.request<BlockedVideo>(`/api/v1/blocked-videos/${videoId}`);
+  }
+
+  async createBlockedVideo(data: CreateBlockedVideoRequest): Promise<BlockedVideo> {
+    return this.request<BlockedVideo>('/api/v1/blocked-videos', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteBlockedVideo(videoId: string): Promise<void> {
+    await this.request<void>(`/api/v1/blocked-videos/${videoId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ========== Enrichments ==========
 
   async getVideoEnrichment(videoId: string): Promise<VideoEnrichment | null> {
     try {

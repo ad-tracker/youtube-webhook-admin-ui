@@ -9,6 +9,7 @@ import { Channels } from './pages/Channels';
 import { Videos } from './pages/Videos';
 import { VideoUpdates } from './pages/VideoUpdates';
 import { Subscriptions } from './pages/Subscriptions';
+import { BlockedVideos } from './pages/BlockedVideos';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -39,6 +40,7 @@ function ProtectedRoutes() {
         <Route path="/videos" element={<Videos />} />
         <Route path="/video-updates" element={<VideoUpdates />} />
         <Route path="/subscriptions" element={<Subscriptions />} />
+        <Route path="/blocked-videos" element={<BlockedVideos />} />
         <Route path="/" element={<Navigate to="/webhook-events" replace />} />
         <Route path="*" element={<Navigate to="/webhook-events" replace />} />
       </Routes>
