@@ -289,7 +289,7 @@ export class APIClient {
     });
   }
 
-  async createChannelFromURL(data: { url: string; callback_url?: string }): Promise<{
+  async createChannelFromURL(data: { url: string }): Promise<{
     channel: Channel;
     subscription?: PubSubSubscription;
     enrichment?: Record<string, unknown>;
