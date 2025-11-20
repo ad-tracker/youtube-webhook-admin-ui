@@ -4,7 +4,7 @@ import { Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { type ColumnDef } from '@tanstack/react-table';
 import { getAPIClient } from '../lib/api-client';
 import { formatDate, truncate } from '../lib/utils';
-import type { Video, VideoFilters, CreateVideoRequest, VideoEnrichment } from '../types/api';
+import type { Video, VideoFilters, CreateVideoRequest, VideoEnrichment, Channel } from '../types/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -48,10 +48,42 @@ export function Videos() {
   const [enrichments, setEnrichments] = useState<Record<string, VideoEnrichment | null>>({});
   const [loadingEnrichments, setLoadingEnrichments] = useState<Set<string>>(new Set());
 
+  // Store channels for channel name display
+  const [channels, setChannels] = useState<Record<string, Channel | null>>({});
+
   // Fetch videos
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['videos', filters],
     queryFn: () => getAPIClient().getVideos(filters),
+  });
+
+  // Fetch channels for all videos on the current page
+  useQuery({
+    queryKey: ['channels', data?.items],
+    queryFn: async () => {
+      if (!data?.items || data.items.length === 0) return {};
+
+      // Extract unique channel IDs
+      const channelIds = [...new Set(data.items.map((video) => video.channel_id))];
+
+      // Fetch channels individually (no batch endpoint available)
+      const channelMap: Record<string, Channel | null> = {};
+      await Promise.all(
+        channelIds.map(async (channelId) => {
+          try {
+            const channel = await getAPIClient().getChannelById(channelId);
+            channelMap[channelId] = channel;
+          } catch (error) {
+            console.error(`Failed to fetch channel ${channelId}:`, error);
+            channelMap[channelId] = null;
+          }
+        })
+      );
+
+      setChannels(channelMap);
+      return channelMap;
+    },
+    enabled: !!data?.items,
   });
 
   // Create video mutation
@@ -158,10 +190,18 @@ export function Videos() {
       },
       {
         accessorKey: 'channel_id',
-        header: 'Channel ID',
-        cell: ({ row }) => (
-          <span className="font-mono text-xs">{truncate(row.original.channel_id, 15)}</span>
-        ),
+        header: 'Channel',
+        cell: ({ row }) => {
+          const channelId = row.original.channel_id;
+          const channel = channels[channelId];
+          const channelTitle = channel?.title;
+
+          return channelTitle ? (
+            <span className="text-sm">{truncate(channelTitle, 30)}</span>
+          ) : (
+            <span className="font-mono text-xs">{truncate(channelId, 15)}</span>
+          );
+        },
       },
       {
         accessorKey: 'video_url',
@@ -214,7 +254,7 @@ export function Videos() {
         enableSorting: false,
       },
     ],
-    [deleteMutation.isPending, handleDelete]
+    [deleteMutation.isPending, handleDelete, channels]
   );
 
   return (

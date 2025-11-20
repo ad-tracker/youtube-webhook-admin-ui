@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { RefreshCw, Search } from 'lucide-react';
 import { getAPIClient } from '../lib/api-client';
 import { formatDate, truncate } from '../lib/utils';
-import type { VideoUpdateFilters } from '../types/api';
+import type { VideoUpdateFilters, Channel } from '../types/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select } from '../components/ui/select';
@@ -35,10 +35,42 @@ export function VideoUpdates() {
   const [searchChannel, setSearchChannel] = useState('');
   const [updateType, setUpdateType] = useState<string>('all');
 
+  // Store channels for channel name display
+  const [channels, setChannels] = useState<Record<string, Channel | null>>({});
+
   // Fetch video updates
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['video-updates', filters],
     queryFn: () => getAPIClient().getVideoUpdates(filters),
+  });
+
+  // Fetch channels for all video updates on the current page
+  useQuery({
+    queryKey: ['channels', data?.items],
+    queryFn: async () => {
+      if (!data?.items || data.items.length === 0) return {};
+
+      // Extract unique channel IDs
+      const channelIds = [...new Set(data.items.map((update) => update.channel_id))];
+
+      // Fetch channels individually (no batch endpoint available)
+      const channelMap: Record<string, Channel | null> = {};
+      await Promise.all(
+        channelIds.map(async (channelId) => {
+          try {
+            const channel = await getAPIClient().getChannelById(channelId);
+            channelMap[channelId] = channel;
+          } catch (error) {
+            console.error(`Failed to fetch channel ${channelId}:`, error);
+            channelMap[channelId] = null;
+          }
+        })
+      );
+
+      setChannels(channelMap);
+      return channelMap;
+    },
+    enabled: !!data?.items,
   });
 
   const handleSearch = () => {
@@ -153,39 +185,48 @@ export function VideoUpdates() {
                   <TableHead>Type</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Video ID</TableHead>
-                  <TableHead>Channel ID</TableHead>
+                  <TableHead>Channel</TableHead>
                   <TableHead>Webhook Event</TableHead>
                   <TableHead>Published At</TableHead>
                   <TableHead>Created At</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.items.map((update) => (
-                  <TableRow key={update.id}>
-                    <TableCell className="font-mono text-xs">
-                      {update.id}
-                    </TableCell>
-                    <TableCell>{getUpdateTypeBadge(update.update_type)}</TableCell>
-                    <TableCell className="max-w-xs">
-                      {truncate(update.title, 40)}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {truncate(update.video_id, 15)}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {truncate(update.channel_id, 15)}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {update.webhook_event_id}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {formatDate(update.published_at)}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {formatDate(update.created_at)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {data.items.map((update) => {
+                  const channel = channels[update.channel_id];
+                  const channelTitle = channel?.title;
+
+                  return (
+                    <TableRow key={update.id}>
+                      <TableCell className="font-mono text-xs">
+                        {update.id}
+                      </TableCell>
+                      <TableCell>{getUpdateTypeBadge(update.update_type)}</TableCell>
+                      <TableCell className="max-w-xs">
+                        {truncate(update.title, 40)}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {truncate(update.video_id, 15)}
+                      </TableCell>
+                      <TableCell>
+                        {channelTitle ? (
+                          <span className="text-sm">{truncate(channelTitle, 30)}</span>
+                        ) : (
+                          <span className="font-mono text-xs">{truncate(update.channel_id, 15)}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {update.webhook_event_id}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {formatDate(update.published_at)}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {formatDate(update.created_at)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
             <Pagination
