@@ -38,7 +38,6 @@ export function Channels() {
   const [addMode, setAddMode] = useState<'url' | 'manual'>('url');
   const [urlFormData, setUrlFormData] = useState({
     url: '',
-    callback_url: '',
   });
   const [formData, setFormData] = useState<CreateChannelRequest>({
     channel_id: '',
@@ -72,14 +71,13 @@ export function Channels() {
 
   // Create channel from URL mutation
   const createFromURLMutation = useMutation({
-    mutationFn: (data: { url: string; callback_url?: string }) =>
+    mutationFn: (data: { url: string }) =>
       getAPIClient().createChannelFromURL(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['channels'] });
       setShowCreateForm(false);
       setUrlFormData({
         url: '',
-        callback_url: '',
       });
     },
   });
@@ -304,18 +302,6 @@ export function Channels() {
                     </p>
                   </div>
                   <div>
-                    <Label htmlFor="callback_url">Callback URL (Optional)</Label>
-                    <Input
-                      id="callback_url"
-                      value={urlFormData.callback_url}
-                      onChange={(e) =>
-                        setUrlFormData({ ...urlFormData, callback_url: e.target.value })
-                      }
-                      placeholder="https://your-domain.com/webhook"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Auto-creates PubSubHubbub subscription if provided
-                    </p>
                   </div>
                 </div>
               )}

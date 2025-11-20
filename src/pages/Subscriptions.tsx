@@ -39,7 +39,6 @@ export function Subscriptions() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState<CreatePubSubSubscriptionRequest>({
     channel_id: '',
-    callback_url: '',
     lease_seconds: 432000, // 5 days default
   });
 
@@ -58,7 +57,6 @@ export function Subscriptions() {
       setShowCreateForm(false);
       setFormData({
         channel_id: '',
-        callback_url: '',
         lease_seconds: 432000,
       });
     },
@@ -142,13 +140,6 @@ export function Subscriptions() {
         accessorKey: 'status',
         header: 'Status',
         cell: ({ row }) => getStatusBadge(row.original.status),
-      },
-      {
-        accessorKey: 'callback_url',
-        header: 'Callback URL',
-        cell: ({ row }) => (
-          <span className="text-xs max-w-xs inline-block">{truncate(row.original.callback_url, 40)}</span>
-        ),
       },
       {
         accessorKey: 'topic_url',
@@ -292,21 +283,6 @@ export function Subscriptions() {
                   />
                   <p className="mt-1 text-xs text-muted-foreground">
                     Default: 432000 (5 days)
-                  </p>
-                </div>
-                <div className="md:col-span-2">
-                  <Label htmlFor="callback_url">Callback URL *</Label>
-                  <Input
-                    id="callback_url"
-                    type="url"
-                    value={formData.callback_url}
-                    onChange={(e) =>
-                      setFormData({ ...formData, callback_url: e.target.value })
-                    }
-                    required
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    The URL where webhook notifications will be sent
                   </p>
                 </div>
               </div>

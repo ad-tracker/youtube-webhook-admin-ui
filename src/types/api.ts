@@ -140,7 +140,6 @@ export interface PubSubSubscription {
   id: number;
   channel_id: string;
   topic_url: string;
-  callback_url: string;
   hub_url: string;
   lease_seconds: number;
   expires_at: string;
@@ -158,7 +157,6 @@ export interface PubSubSubscriptionFilters extends PaginationParams {
 
 export interface CreatePubSubSubscriptionRequest {
   channel_id: string;
-  callback_url: string;
   lease_seconds?: number;
 }
 
