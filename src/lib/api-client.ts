@@ -11,6 +11,8 @@ import type {
   CreatePubSubSubscriptionRequest,
   CreateVideoRequest,
   CreateVideoUpdateRequest,
+  EnrichmentJob,
+  EnrichmentJobFilters,
   PaginatedResponse,
   PubSubSubscription,
   PubSubSubscriptionFilters,
@@ -489,6 +491,21 @@ export class APIClient {
         method: 'POST',
       }
     );
+  }
+
+  // ==================== Enrichment Jobs ====================
+
+  async getJobs(
+    filters: EnrichmentJobFilters = {}
+  ): Promise<PaginatedResponse<EnrichmentJob>> {
+    const query = this.buildQueryString(filters);
+    return this.request<PaginatedResponse<EnrichmentJob>>(
+      `/api/v1/jobs${query}`
+    );
+  }
+
+  async getJobById(id: number): Promise<EnrichmentJob> {
+    return this.request<EnrichmentJob>(`/api/v1/jobs/${id}`);
   }
 }
 

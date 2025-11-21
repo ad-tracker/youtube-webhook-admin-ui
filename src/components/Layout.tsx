@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
   Bell,
+  Briefcase,
   File,
   LogOut,
   Radio,
@@ -46,6 +47,11 @@ const navItems = [
     name: 'Subscriptions',
     path: '/subscriptions',
     icon: Radio,
+  },
+  {
+    name: 'Jobs',
+    path: '/jobs',
+    icon: Briefcase,
   },
 ];
 
