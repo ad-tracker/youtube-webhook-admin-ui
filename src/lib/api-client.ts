@@ -490,6 +490,17 @@ export class APIClient {
       }
     );
   }
+
+  async enqueueVideoEnrichment(
+    videoId: string
+  ): Promise<{ status: string; video_id: string }> {
+    return this.request<{ status: string; video_id: string }>(
+      `/api/v1/enrichments/videos/${videoId}/enqueue`,
+      {
+        method: 'POST',
+      }
+    );
+  }
 }
 
 /**

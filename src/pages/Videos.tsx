@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { Plus, RefreshCw, Search, Trash2, Sparkles } from 'lucide-react';
 import { type ColumnDef } from '@tanstack/react-table';
 import { getAPIClient } from '../lib/api-client';
 import { formatDate, truncate } from '../lib/utils';
@@ -110,6 +110,18 @@ export function Videos() {
     },
   });
 
+  const enrichMutation = useMutation({
+    mutationFn: (videoId: string) => getAPIClient().enqueueVideoEnrichment(videoId),
+    onSuccess: (_data, videoId) => {
+      // Invalidate the enrichment data for this video to trigger a refetch
+      setEnrichments((prev) => {
+        const updated = { ...prev };
+        delete updated[videoId];
+        return updated;
+      });
+    },
+  });
+
   const handleSearch = () => {
     const newFilters: VideoFilters = {
       limit: ITEMS_PER_PAGE,
@@ -136,6 +148,12 @@ export function Videos() {
       deleteMutation.mutate(videoId);
     }
   }, [deleteMutation]);
+
+  const handleEnrich = useCallback((videoId: string, title: string) => {
+    if (confirm(`Queue enrichment data pull for video "${title}"?`)) {
+      enrichMutation.mutate(videoId);
+    }
+  }, [enrichMutation]);
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,20 +259,32 @@ export function Videos() {
         id: 'actions',
         header: 'Actions',
         cell: ({ row }) => (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleDelete(row.original.video_id, row.original.title)}
-            disabled={deleteMutation.isPending}
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleEnrich(row.original.video_id, row.original.title)}
+              disabled={enrichMutation.isPending}
+              title="Queue video enrichment"
+            >
+              <Sparkles className="h-3 w-3" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleDelete(row.original.video_id, row.original.title)}
+              disabled={deleteMutation.isPending}
+              title="Delete video"
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
         ),
         enableHiding: false,
         enableSorting: false,
       },
     ],
-    [deleteMutation.isPending, handleDelete, channels]
+    [deleteMutation.isPending, enrichMutation.isPending, handleDelete, handleEnrich, channels]
   );
 
   return (
