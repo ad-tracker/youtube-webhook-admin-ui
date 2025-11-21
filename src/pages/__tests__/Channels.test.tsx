@@ -206,8 +206,8 @@ describe('Channels', () => {
       expect(screen.getByText('Test Channel 1')).toBeInTheDocument();
     });
 
-    const deleteButtons = screen.getAllByRole('button', { name: '' });
-    const deleteButton = deleteButtons.find(btn => btn.querySelector('svg'));
+    const deleteButtons = screen.getAllByTitle('Delete channel');
+    const deleteButton = deleteButtons[0];
 
     if (deleteButton) {
       await user.click(deleteButton);
@@ -228,8 +228,8 @@ describe('Channels', () => {
       expect(screen.getByText('Test Channel 1')).toBeInTheDocument();
     });
 
-    const deleteButtons = screen.getAllByRole('button', { name: '' });
-    const deleteButton = deleteButtons.find(btn => btn.querySelector('svg'));
+    const deleteButtons = screen.getAllByTitle('Delete channel');
+    const deleteButton = deleteButtons[0];
 
     if (deleteButton) {
       await user.click(deleteButton);

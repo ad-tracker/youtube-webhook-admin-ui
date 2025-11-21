@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { Plus, RefreshCw, Search, Trash2, Sparkles } from 'lucide-react';
 import { type ColumnDef } from '@tanstack/react-table';
 import { getAPIClient } from '../lib/api-client';
 import { formatDate, truncate } from '../lib/utils';
@@ -90,6 +90,18 @@ export function Channels() {
     },
   });
 
+  const enrichMutation = useMutation({
+    mutationFn: (channelId: string) => getAPIClient().enqueueChannelEnrichment(channelId),
+    onSuccess: (_data, channelId) => {
+      // Invalidate the enrichment data for this channel to trigger a refetch
+      setEnrichments((prev) => {
+        const updated = { ...prev };
+        delete updated[channelId];
+        return updated;
+      });
+    },
+  });
+
   const handleSearch = () => {
     const newFilters: ChannelFilters = {
       limit: ITEMS_PER_PAGE,
@@ -115,6 +127,12 @@ export function Channels() {
       deleteMutation.mutate(channelId);
     }
   }, [deleteMutation]);
+
+  const handleEnrich = useCallback((channelId: string, title: string) => {
+    if (confirm(`Queue enrichment data pull for channel "${title}"?`)) {
+      enrichMutation.mutate(channelId);
+    }
+  }, [enrichMutation]);
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -215,20 +233,32 @@ export function Channels() {
         id: 'actions',
         header: 'Actions',
         cell: ({ row }) => (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleDelete(row.original.channel_id, row.original.title)}
-            disabled={deleteMutation.isPending}
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleEnrich(row.original.channel_id, row.original.title)}
+              disabled={enrichMutation.isPending}
+              title="Queue channel enrichment"
+            >
+              <Sparkles className="h-3 w-3" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleDelete(row.original.channel_id, row.original.title)}
+              disabled={deleteMutation.isPending}
+              title="Delete channel"
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
         ),
         enableHiding: false,
         enableSorting: false,
       },
     ],
-    [deleteMutation.isPending, handleDelete]
+    [deleteMutation.isPending, enrichMutation.isPending, handleDelete, handleEnrich]
   );
 
   return (

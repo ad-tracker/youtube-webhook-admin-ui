@@ -479,6 +479,17 @@ export class APIClient {
       }
     );
   }
+
+  async enqueueChannelEnrichment(
+    channelId: string
+  ): Promise<{ status: string; channel_id: string }> {
+    return this.request<{ status: string; channel_id: string }>(
+      `/api/v1/enrichments/channels/${channelId}/enqueue`,
+      {
+        method: 'POST',
+      }
+    );
+  }
 }
 
 /**
