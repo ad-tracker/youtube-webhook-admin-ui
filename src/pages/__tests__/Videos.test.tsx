@@ -48,6 +48,7 @@ describe('Videos', () => {
   let mockGetVideos: ReturnType<typeof vi.fn>;
   let mockCreateVideo: ReturnType<typeof vi.fn>;
   let mockDeleteVideo: ReturnType<typeof vi.fn>;
+  let mockEnqueueVideoEnrichment: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -60,11 +61,13 @@ describe('Videos', () => {
     mockGetVideos = vi.fn().mockResolvedValue(mockPaginatedResponse);
     mockCreateVideo = vi.fn().mockResolvedValue(mockVideos[0]);
     mockDeleteVideo = vi.fn().mockResolvedValue(undefined);
+    mockEnqueueVideoEnrichment = vi.fn().mockResolvedValue({ status: 'enqueued', video_id: 'dQw4w9WgXcQ' });
 
     vi.mocked(apiClient.getAPIClient).mockReturnValue({
       getVideos: mockGetVideos,
       createVideo: mockCreateVideo,
       deleteVideo: mockDeleteVideo,
+      enqueueVideoEnrichment: mockEnqueueVideoEnrichment,
     } as Partial<APIClient> as APIClient);
   });
 
@@ -226,16 +229,14 @@ describe('Videos', () => {
       expect(screen.getByText('Test Video 1')).toBeInTheDocument();
     });
 
-    const deleteButtons = screen.getAllByRole('button', { name: '' });
-    const deleteButton = deleteButtons.find(btn => btn.querySelector('svg'));
+    const deleteButtons = screen.getAllByTitle('Delete video');
+    const deleteButton = deleteButtons[0];
 
-    if (deleteButton) {
-      await user.click(deleteButton);
+    await user.click(deleteButton);
 
-      await waitFor(() => {
-        expect(mockDeleteVideo).toHaveBeenCalledWith('dQw4w9WgXcQ');
-      });
-    }
+    await waitFor(() => {
+      expect(mockDeleteVideo).toHaveBeenCalledWith('dQw4w9WgXcQ');
+    });
   });
 
   it('should display empty state when no videos are found', async () => {
@@ -298,5 +299,41 @@ describe('Videos', () => {
     await waitFor(() => {
       expect(screen.queryByText('Add New Video')).not.toBeInTheDocument();
     });
+  });
+
+  it('should enqueue video enrichment when enrichment button is clicked and confirmed', async () => {
+    const user = userEvent.setup();
+    global.confirm = vi.fn(() => true);
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Video 1')).toBeInTheDocument();
+    });
+
+    const enrichButton = screen.getAllByTitle('Queue video enrichment')[0];
+
+    await user.click(enrichButton);
+
+    await waitFor(() => {
+      expect(mockEnqueueVideoEnrichment).toHaveBeenCalledWith('dQw4w9WgXcQ');
+    });
+  });
+
+  it('should not enqueue video enrichment when enrichment is cancelled', async () => {
+    const user = userEvent.setup();
+    global.confirm = vi.fn(() => false);
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Video 1')).toBeInTheDocument();
+    });
+
+    const enrichButton = screen.getAllByTitle('Queue video enrichment')[0];
+
+    await user.click(enrichButton);
+
+    expect(mockEnqueueVideoEnrichment).not.toHaveBeenCalled();
   });
 });
