@@ -356,6 +356,33 @@ export interface CreateBlockedVideoRequest {
   created_by?: string;
 }
 
+// Enrichment Jobs
+export interface EnrichmentJob {
+  id: number;
+  asynq_task_id: string | null;
+  job_type: string;
+  video_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  priority: number;
+  scheduled_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  attempts: number;
+  max_attempts: number;
+  next_retry_at: string | null;
+  error_message: string | null;
+  error_stack_trace: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EnrichmentJobFilters extends PaginationParams, OrderParams {
+  status?: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  job_type?: string;
+  video_id?: string;
+}
+
 // API Configuration
 export interface APIConfig {
   baseURL: string;
