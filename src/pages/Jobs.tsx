@@ -283,7 +283,7 @@ export function Jobs() {
           <LoadingSpinner />
         ) : error ? (
           <ErrorMessage message={(error as Error).message} />
-        ) : data && data.items.length > 0 ? (
+        ) : data?.items?.length ? (
           <>
             <DataTable
               columns={columns}
