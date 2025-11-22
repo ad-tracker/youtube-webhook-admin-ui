@@ -383,6 +383,62 @@ export interface EnrichmentJobFilters extends PaginationParams, OrderParams {
   video_id?: string;
 }
 
+// Sponsors
+export interface Sponsor {
+  id: string; // UUID
+  name: string;
+  normalized_name: string;
+  category: string | null;
+  website_url: string | null;
+  description: string | null;
+  first_seen_at: string;
+  last_seen_at: string;
+  video_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SponsorFilters extends PaginationParams, OrderParams {
+  category?: string;
+  name?: string;
+}
+
+// Video Sponsor Detail (includes video info + sponsorship)
+export interface VideoSponsorDetail {
+  id: string; // video_sponsor ID
+  video_id: string;
+  sponsor_id: string;
+  confidence: number; // 0.0 to 1.0
+  evidence: string | null;
+  first_detected_at: string;
+  last_detected_at: string;
+  // Sponsor fields
+  sponsor_name: string;
+  sponsor_category: string | null;
+  sponsor_website_url: string | null;
+  // Video fields
+  video_youtube_id: string;
+  video_title: string;
+  video_published_at: string;
+  video_channel_id: string;
+}
+
+// Sponsor Detection Jobs
+export interface SponsorDetectionJob {
+  id: string; // UUID
+  video_id: string;
+  status: 'pending' | 'completed' | 'failed' | 'skipped';
+  error_message: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export interface SponsorDetectionJobFilters extends PaginationParams, OrderParams {
+  video_id?: string;
+  status?: 'pending' | 'completed' | 'failed' | 'skipped';
+}
+
 // API Configuration
 export interface APIConfig {
   baseURL: string;

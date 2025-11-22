@@ -2,9 +2,10 @@ import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, RefreshCw, Search, Trash2, Sparkles } from 'lucide-react';
 import { type ColumnDef } from '@tanstack/react-table';
+import { Link } from 'react-router-dom';
 import { getAPIClient } from '../lib/api-client';
 import { formatDate, truncate } from '../lib/utils';
-import type { Channel, ChannelFilters, CreateChannelRequest, ChannelEnrichment } from '../types/api';
+import type { Channel, ChannelFilters, CreateChannelRequest, ChannelEnrichment, VideoSponsorDetail } from '../types/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -48,6 +49,10 @@ export function Channels() {
   // Store enrichments for expanded rows
   const [enrichments, setEnrichments] = useState<Record<string, ChannelEnrichment | null>>({});
   const [loadingEnrichments, setLoadingEnrichments] = useState<Set<string>>(new Set());
+
+  // Store sponsors for expanded rows
+  const [sponsors, setSponsors] = useState<Record<string, VideoSponsorDetail[]>>({});
+  const [loadingSponsors, setLoadingSponsors] = useState<Set<string>>(new Set());
 
   // Fetch channels
   const { data, isLoading, error, refetch } = useQuery({
@@ -158,6 +163,28 @@ export function Channels() {
       setEnrichments((prev) => ({ ...prev, [channelId]: null }));
     } finally {
       setLoadingEnrichments((prev) => {
+        const next = new Set(prev);
+        next.delete(channelId);
+        return next;
+      });
+    }
+  };
+
+  // Fetch sponsors when row is expanded
+  const fetchSponsors = async (channelId: string) => {
+    if (sponsors[channelId] !== undefined || loadingSponsors.has(channelId)) {
+      return; // Already loaded or loading
+    }
+
+    setLoadingSponsors((prev) => new Set(prev).add(channelId));
+    try {
+      const response = await getAPIClient().getChannelSponsors(channelId, { limit: 10 });
+      setSponsors((prev) => ({ ...prev, [channelId]: response.items }));
+    } catch (error) {
+      console.error('Failed to fetch sponsors:', error);
+      setSponsors((prev) => ({ ...prev, [channelId]: [] }));
+    } finally {
+      setLoadingSponsors((prev) => {
         const next = new Set(prev);
         next.delete(channelId);
         return next;
@@ -449,31 +476,117 @@ export function Channels() {
               renderExpandedRow={(row) => {
                 const channelId = row.original.channel_id;
 
-                // Fetch enrichment on first expand
+                // Fetch enrichment and sponsors on first expand
                 if (!enrichments[channelId] && !loadingEnrichments.has(channelId)) {
                   fetchEnrichment(channelId);
                 }
+                if (!sponsors[channelId] && !loadingSponsors.has(channelId)) {
+                  fetchSponsors(channelId);
+                }
 
                 const enrichment = enrichments[channelId];
-                const isLoading = loadingEnrichments.has(channelId);
+                const channelSponsors = sponsors[channelId];
+                const isLoadingEnrichment = loadingEnrichments.has(channelId);
+                const isLoadingSponsors = loadingSponsors.has(channelId);
 
-                if (isLoading) {
-                  return (
-                    <div className="p-4">
-                      <LoadingSpinner />
+                // Calculate sponsor analytics (without useMemo to avoid React Hooks rule violation)
+                const getSponsorAnalytics = () => {
+                  if (!channelSponsors || channelSponsors.length === 0) return [];
+
+                  const sponsorMap = new Map<string, { sponsor: VideoSponsorDetail; count: number; videos: VideoSponsorDetail[] }>();
+
+                  channelSponsors.forEach((detail) => {
+                    const existing = sponsorMap.get(detail.sponsor_id);
+                    if (existing) {
+                      existing.count++;
+                      existing.videos.push(detail);
+                    } else {
+                      sponsorMap.set(detail.sponsor_id, {
+                        sponsor: detail,
+                        count: 1,
+                        videos: [detail],
+                      });
+                    }
+                  });
+
+                  return Array.from(sponsorMap.values())
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 10); // Top 10
+                };
+                const sponsorAnalytics = getSponsorAnalytics();
+
+                return (
+                  <div className="space-y-6">
+                    {/* Enrichment Data */}
+                    {isLoadingEnrichment ? (
+                      <div className="p-4">
+                        <LoadingSpinner />
+                      </div>
+                    ) : enrichment ? (
+                      <ChannelEnrichmentDetails enrichment={enrichment} />
+                    ) : (
+                      <div className="p-4 text-center text-gray-500">
+                        No enrichment data available for this channel
+                      </div>
+                    )}
+
+                    {/* Sponsor Partnerships Section */}
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-semibold text-sm mb-3">Sponsor Partnerships</h4>
+                      {isLoadingSponsors ? (
+                        <div className="flex justify-center py-4">
+                          <LoadingSpinner />
+                        </div>
+                      ) : sponsorAnalytics.length > 0 ? (
+                        <div className="space-y-3">
+                          {sponsorAnalytics.map(({ sponsor, count, videos }) => {
+                            const firstDetected = videos[videos.length - 1]?.first_detected_at;
+                            const lastDetected = videos[0]?.first_detected_at;
+
+                            return (
+                              <div
+                                key={sponsor.sponsor_id}
+                                className="bg-white p-3 rounded border border-gray-200"
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <Link
+                                      to={`/sponsors/${sponsor.sponsor_id}`}
+                                      className="font-medium text-blue-600 hover:underline"
+                                    >
+                                      {sponsor.sponsor_name}
+                                    </Link>
+                                    {sponsor.sponsor_category && (
+                                      <span className="ml-2 inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                                        {sponsor.sponsor_category}
+                                      </span>
+                                    )}
+                                    <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
+                                      <span>{count} video{count === 1 ? '' : 's'}</span>
+                                      {firstDetected && lastDetected && (
+                                        <span>
+                                          {formatDate(firstDetected)} - {formatDate(lastDetected)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="text-lg font-semibold">{count}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      video{count === 1 ? '' : 's'}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">No sponsor partnerships detected for this channel</p>
+                      )}
                     </div>
-                  );
-                }
-
-                if (!enrichment) {
-                  return (
-                    <div className="p-4 text-center text-gray-500">
-                      No enrichment data available for this channel
-                    </div>
-                  );
-                }
-
-                return <ChannelEnrichmentDetails enrichment={enrichment} />;
+                  </div>
+                );
               }}
               initialColumnVisibility={{
                 created_at: false, // Hide by default

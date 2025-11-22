@@ -3,9 +3,11 @@ import {
   Bell,
   Briefcase,
   File,
+  ListChecks,
   LogOut,
   Radio,
   ShieldX,
+  Sparkles,
   Video,
   Youtube,
 } from 'lucide-react';
@@ -34,6 +36,11 @@ const navItems = [
     icon: Video,
   },
   {
+    name: 'Sponsors',
+    path: '/sponsors',
+    icon: Sparkles,
+  },
+  {
     name: 'Blocked Videos',
     path: '/blocked-videos',
     icon: ShieldX,
@@ -52,6 +59,11 @@ const navItems = [
     name: 'Jobs',
     path: '/jobs',
     icon: Briefcase,
+  },
+  {
+    name: 'Sponsor Jobs',
+    path: '/sponsor-detection-jobs',
+    icon: ListChecks,
   },
 ];
 
