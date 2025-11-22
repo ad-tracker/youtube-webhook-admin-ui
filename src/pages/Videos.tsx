@@ -2,9 +2,10 @@ import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, RefreshCw, Search, Trash2, Sparkles } from 'lucide-react';
 import { type ColumnDef } from '@tanstack/react-table';
+import { Link } from 'react-router-dom';
 import { getAPIClient } from '../lib/api-client';
 import { formatDate, truncate } from '../lib/utils';
-import type { Video, VideoFilters, CreateVideoRequest, VideoEnrichment, Channel } from '../types/api';
+import type { Video, VideoFilters, CreateVideoRequest, VideoEnrichment, Channel, VideoSponsorDetail } from '../types/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -47,6 +48,10 @@ export function Videos() {
   // Store enrichments for expanded rows
   const [enrichments, setEnrichments] = useState<Record<string, VideoEnrichment | null>>({});
   const [loadingEnrichments, setLoadingEnrichments] = useState<Set<string>>(new Set());
+
+  // Store sponsors for expanded rows
+  const [sponsors, setSponsors] = useState<Record<string, VideoSponsorDetail[]>>({});
+  const [loadingSponsors, setLoadingSponsors] = useState<Set<string>>(new Set());
 
   // Store channels for channel name display
   const [channels, setChannels] = useState<Record<string, Channel | null>>({});
@@ -175,6 +180,28 @@ export function Videos() {
       setEnrichments((prev) => ({ ...prev, [videoId]: null }));
     } finally {
       setLoadingEnrichments((prev) => {
+        const next = new Set(prev);
+        next.delete(videoId);
+        return next;
+      });
+    }
+  };
+
+  // Fetch sponsors when row is expanded
+  const fetchSponsors = async (videoId: string) => {
+    if (sponsors[videoId] !== undefined || loadingSponsors.has(videoId)) {
+      return; // Already loaded or loading
+    }
+
+    setLoadingSponsors((prev) => new Set(prev).add(videoId));
+    try {
+      const videoSponsors = await getAPIClient().getVideoSponsors(videoId);
+      setSponsors((prev) => ({ ...prev, [videoId]: videoSponsors }));
+    } catch (error) {
+      console.error('Failed to fetch sponsors:', error);
+      setSponsors((prev) => ({ ...prev, [videoId]: [] }));
+    } finally {
+      setLoadingSponsors((prev) => {
         const next = new Set(prev);
         next.delete(videoId);
         return next;
@@ -447,31 +474,100 @@ export function Videos() {
               renderExpandedRow={(row) => {
                 const videoId = row.original.video_id;
 
-                // Fetch enrichment on first expand
+                // Fetch enrichment and sponsors on first expand
                 if (!enrichments[videoId] && !loadingEnrichments.has(videoId)) {
                   fetchEnrichment(videoId);
                 }
+                if (!sponsors[videoId] && !loadingSponsors.has(videoId)) {
+                  fetchSponsors(videoId);
+                }
 
                 const enrichment = enrichments[videoId];
-                const isLoading = loadingEnrichments.has(videoId);
+                const videoSponsors = sponsors[videoId];
+                const isLoadingEnrichment = loadingEnrichments.has(videoId);
+                const isLoadingSponsors = loadingSponsors.has(videoId);
 
-                if (isLoading) {
-                  return (
-                    <div className="p-4">
-                      <LoadingSpinner />
+                return (
+                  <div className="space-y-6">
+                    {/* Enrichment Data */}
+                    {isLoadingEnrichment ? (
+                      <div className="p-4">
+                        <LoadingSpinner />
+                      </div>
+                    ) : enrichment ? (
+                      <VideoEnrichmentDetails enrichment={enrichment} />
+                    ) : (
+                      <div className="p-4 text-center text-gray-500">
+                        No enrichment data available for this video
+                      </div>
+                    )}
+
+                    {/* Sponsors Section */}
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-semibold text-sm mb-3">Sponsors</h4>
+                      {isLoadingSponsors ? (
+                        <div className="flex justify-center py-4">
+                          <LoadingSpinner />
+                        </div>
+                      ) : videoSponsors && videoSponsors.length > 0 ? (
+                        <div className="space-y-3">
+                          {videoSponsors.map((sponsor) => (
+                            <div
+                              key={sponsor.id}
+                              className="bg-white p-3 rounded border border-gray-200"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <Link
+                                    to={`/sponsors/${sponsor.sponsor_id}`}
+                                    className="font-medium text-blue-600 hover:underline"
+                                  >
+                                    {sponsor.sponsor_name}
+                                  </Link>
+                                  {sponsor.sponsor_category && (
+                                    <span className="ml-2 inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                                      {sponsor.sponsor_category}
+                                    </span>
+                                  )}
+                                  <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
+                                    <span>Confidence: {Math.round(sponsor.confidence * 100)}%</span>
+                                    <span>Detected: {formatDate(sponsor.first_detected_at)}</span>
+                                  </div>
+                                  {sponsor.evidence && (
+                                    <details className="mt-2">
+                                      <summary className="text-xs text-blue-600 cursor-pointer hover:underline">
+                                        Show evidence
+                                      </summary>
+                                      <p className="mt-2 text-xs text-gray-700 bg-gray-50 p-2 rounded border">
+                                        {sponsor.evidence}
+                                      </p>
+                                    </details>
+                                  )}
+                                </div>
+                                <div className="ml-4">
+                                  <div className="w-24 bg-gray-200 rounded-full h-2">
+                                    <div
+                                      className={`h-2 rounded-full ${
+                                        sponsor.confidence >= 0.9
+                                          ? 'bg-green-600'
+                                          : sponsor.confidence >= 0.7
+                                          ? 'bg-yellow-600'
+                                          : 'bg-orange-600'
+                                      }`}
+                                      style={{ width: `${sponsor.confidence * 100}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">No sponsors detected for this video</p>
+                      )}
                     </div>
-                  );
-                }
-
-                if (!enrichment) {
-                  return (
-                    <div className="p-4 text-center text-gray-500">
-                      No enrichment data available for this video
-                    </div>
-                  );
-                }
-
-                return <VideoEnrichmentDetails enrichment={enrichment} />;
+                  </div>
+                );
               }}
               initialColumnVisibility={{
                 first_seen_at: false, // Hide by default

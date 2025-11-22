@@ -16,6 +16,10 @@ import type {
   PaginatedResponse,
   PubSubSubscription,
   PubSubSubscriptionFilters,
+  Sponsor,
+  SponsorDetectionJob,
+  SponsorDetectionJobFilters,
+  SponsorFilters,
   UpdateChannelRequest,
   UpdatePubSubSubscriptionRequest,
   UpdateVideoRequest,
@@ -23,6 +27,7 @@ import type {
   Video,
   VideoEnrichment,
   VideoFilters,
+  VideoSponsorDetail,
   VideoUpdate,
   VideoUpdateFilters,
   WebhookEvent,
@@ -517,6 +522,60 @@ export class APIClient {
 
   async getJobById(id: number): Promise<EnrichmentJob> {
     return this.request<EnrichmentJob>(`/api/v1/jobs/${id}`);
+  }
+
+  // ==================== Sponsors ====================
+
+  async getSponsors(
+    filters: SponsorFilters = {}
+  ): Promise<PaginatedResponse<Sponsor>> {
+    const query = this.buildQueryString(filters);
+    return this.request<PaginatedResponse<Sponsor>>(`/api/v1/sponsors${query}`);
+  }
+
+  async getSponsor(id: string): Promise<Sponsor> {
+    return this.request<Sponsor>(`/api/v1/sponsors/${id}`);
+  }
+
+  async getSponsorVideos(
+    sponsorId: string,
+    filters: { limit?: number; offset?: number } = {}
+  ): Promise<PaginatedResponse<VideoSponsorDetail>> {
+    const query = this.buildQueryString(filters);
+    return this.request<PaginatedResponse<VideoSponsorDetail>>(
+      `/api/v1/sponsors/${sponsorId}/videos${query}`
+    );
+  }
+
+  async getVideoSponsors(videoId: string): Promise<VideoSponsorDetail[]> {
+    return this.request<VideoSponsorDetail[]>(`/api/v1/videos/${videoId}/sponsors`);
+  }
+
+  async getChannelSponsors(
+    channelId: string,
+    filters: { limit?: number; offset?: number } = {}
+  ): Promise<PaginatedResponse<VideoSponsorDetail>> {
+    const query = this.buildQueryString(filters);
+    return this.request<PaginatedResponse<VideoSponsorDetail>>(
+      `/api/v1/channels/${channelId}/sponsors${query}`
+    );
+  }
+
+  // ==================== Sponsor Detection Jobs ====================
+
+  async getSponsorDetectionJobs(
+    filters: SponsorDetectionJobFilters = {}
+  ): Promise<PaginatedResponse<SponsorDetectionJob>> {
+    const query = this.buildQueryString(filters);
+    return this.request<PaginatedResponse<SponsorDetectionJob>>(
+      `/api/v1/sponsor-detection-jobs${query}`
+    );
+  }
+
+  async getSponsorDetectionJob(id: string): Promise<SponsorDetectionJob> {
+    return this.request<SponsorDetectionJob>(
+      `/api/v1/sponsor-detection-jobs/${id}`
+    );
   }
 }
 

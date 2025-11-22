@@ -11,6 +11,9 @@ import { VideoUpdates } from './pages/VideoUpdates';
 import { Subscriptions } from './pages/Subscriptions';
 import { BlockedVideos } from './pages/BlockedVideos';
 import { Jobs } from './pages/Jobs';
+import { Sponsors } from './pages/Sponsors';
+import { SponsorDetail } from './pages/SponsorDetail';
+import { SponsorDetectionJobs } from './pages/SponsorDetectionJobs';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -39,6 +42,9 @@ function ProtectedRoutes() {
         <Route path="/webhook-events" element={<WebhookEvents />} />
         <Route path="/channels" element={<Channels />} />
         <Route path="/videos" element={<Videos />} />
+        <Route path="/sponsors" element={<Sponsors />} />
+        <Route path="/sponsors/:id" element={<SponsorDetail />} />
+        <Route path="/sponsor-detection-jobs" element={<SponsorDetectionJobs />} />
         <Route path="/video-updates" element={<VideoUpdates />} />
         <Route path="/subscriptions" element={<Subscriptions />} />
         <Route path="/blocked-videos" element={<BlockedVideos />} />
